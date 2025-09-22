@@ -36,7 +36,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           githubToken: "demo-token-not-real"
         });
         
-        // Create some demo pull requests for testing
+        // Create some demo pull requests for testing with unique GitHub IDs
+        const baseGithubId = Math.floor(Math.random() * 1000000000); // Generate random base ID
         const demoPRs = [
           {
             repositoryId: repository.id,
@@ -46,7 +47,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             authorAvatar: "https://github.com/demo-user.png",
             status: "open",
             reviewStatus: "pending",
-            githubId: 101,
+            githubId: baseGithubId + 1,
             createdAt: new Date(),
             updatedAt: new Date(),
             changes: JSON.stringify({
@@ -68,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             authorAvatar: "https://github.com/demo-dev.png", 
             status: "open",
             reviewStatus: "approved",
-            githubId: 102,
+            githubId: baseGithubId + 2,
             createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
             updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
             changes: JSON.stringify({
