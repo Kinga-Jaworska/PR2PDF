@@ -126,7 +126,7 @@ export default function RepositoriesPage() {
               <CardContent>
                 <div className="space-y-3">
                   <CardDescription data-testid={`text-repo-description-${repo.id}`}>
-                    {repo.description || "No description available"}
+                    {repo.fullName}
                   </CardDescription>
                   
                   <div className="flex items-center justify-between">
@@ -175,7 +175,7 @@ export default function RepositoriesPage() {
       {/* Add Repository Modal */}
       <AddRepositoryModal
         isOpen={isAddRepoModalOpen}
-        onOpenChange={setIsAddRepoModalOpen}
+        onClose={() => setIsAddRepoModalOpen(false)}
       />
     </div>
   );
