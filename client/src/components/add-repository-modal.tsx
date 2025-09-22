@@ -17,7 +17,7 @@ interface AddRepositoryModalProps {
 export default function AddRepositoryModal({ isOpen, onClose }: AddRepositoryModalProps) {
   const [formData, setFormData] = useState({
     githubToken: "",
-    fullName: "Evidence_FE", // Default repository
+    fullName: "", // Let user fill in the correct format
     defaultBranch: "main",
     autoGenerate: true
   });
@@ -31,6 +31,20 @@ export default function AddRepositoryModal({ isOpen, onClose }: AddRepositoryMod
       toast({
         title: "Missing information",
         description: "Please fill in both GitHub token and repository name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Skip format validation for demo mode
+    const isDemoMode = formData.githubToken === "demo" || 
+                      formData.githubToken === "test" ||
+                      formData.fullName.toLowerCase().includes("demo");
+
+    if (!isDemoMode && !formData.fullName.includes('/')) {
+      toast({
+        title: "Invalid repository format",
+        description: "Repository name must be in format: owner/repository-name (e.g., facebook/react)",
         variant: "destructive",
       });
       return;
@@ -65,7 +79,7 @@ export default function AddRepositoryModal({ isOpen, onClose }: AddRepositoryMod
       // Reset form and close modal
       setFormData({
         githubToken: "",
-        fullName: "Evidence_FE",
+        fullName: "",
         defaultBranch: "main",
         autoGenerate: true
       });
@@ -155,7 +169,7 @@ export default function AddRepositoryModal({ isOpen, onClose }: AddRepositoryMod
             <Input
               id="repository-name"
               type="text"
-              placeholder="Evidence_FE (default) or owner/repository-name"
+              placeholder="owner/repository-name (e.g., facebook/react)"
               value={formData.fullName}
               onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
               disabled={isSubmitting}
@@ -163,19 +177,19 @@ export default function AddRepositoryModal({ isOpen, onClose }: AddRepositoryMod
             />
             <div className="space-y-1 mt-1">
               <p className="text-xs text-muted-foreground">
-                Examples: facebook/react, Evidence_FE, or full URL
+                ⚠️ Format must be: <strong>owner/repository-name</strong> (GitHub requires both owner and repo name)
               </p>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   className="h-6 px-2 text-xs"
-                  onClick={() => setFormData(prev => ({ ...prev, fullName: "Evidence_FE" }))}
+                  onClick={() => setFormData(prev => ({ ...prev, fullName: "your-username/Evidence_FE" }))}
                   disabled={isSubmitting}
                   data-testid="button-set-evidence"
                 >
-                  Use Evidence_FE
+                  your-username/Evidence_FE
                 </Button>
                 <Button
                   type="button"
@@ -186,9 +200,12 @@ export default function AddRepositoryModal({ isOpen, onClose }: AddRepositoryMod
                   disabled={isSubmitting}
                   data-testid="button-set-react"
                 >
-                  Try React (demo)
+                  facebook/react (demo)
                 </Button>
               </div>
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                💡 Find your repository URL on GitHub: github.com/<strong>owner/repository-name</strong>
+              </p>
             </div>
           </div>
 
