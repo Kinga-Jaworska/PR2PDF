@@ -1,0 +1,220 @@
+import { 
+  repositories, 
+  pullRequests, 
+  reports, 
+  insights,
+  type Repository, 
+  type InsertRepository,
+  type PullRequest,
+  type InsertPullRequest,
+  type Report,
+  type InsertReport,
+  type Insight,
+  type InsertInsight
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, and, gte, sql } from "drizzle-orm";
+
+export interface IStorage {
+  // Repositories
+  getRepositories(): Promise<Repository[]>;
+  getRepository(id: string): Promise<Repository | undefined>;
+  getRepositoryByFullName(fullName: string): Promise<Repository | undefined>;
+  createRepository(repository: InsertRepository): Promise<Repository>;
+  updateRepository(id: string, updates: Partial<InsertRepository>): Promise<Repository | undefined>;
+  deleteRepository(id: string): Promise<boolean>;
+
+  // Pull Requests
+  getPullRequestsByRepository(repositoryId: string): Promise<PullRequest[]>;
+  getPullRequest(id: string): Promise<PullRequest | undefined>;
+  getPullRequestByGithubId(githubId: number): Promise<PullRequest | undefined>;
+  createPullRequest(pullRequest: InsertPullRequest): Promise<PullRequest>;
+  updatePullRequest(id: string, updates: Partial<InsertPullRequest>): Promise<PullRequest | undefined>;
+  getRecentPullRequests(limit?: number): Promise<(PullRequest & { repository: Repository })[]>;
+
+  // Reports
+  getReportsByPullRequest(pullRequestId: string): Promise<Report[]>;
+  getReport(id: string): Promise<Report | undefined>;
+  createReport(report: InsertReport): Promise<Report>;
+  updateReport(id: string, updates: Partial<InsertReport>): Promise<Report | undefined>;
+  getReportsCount(): Promise<number>;
+
+  // Insights
+  getInsightsByRepository(repositoryId: string): Promise<Insight[]>;
+  createInsight(insight: InsertInsight): Promise<Insight>;
+  getRecentInsights(repositoryId?: string): Promise<Insight[]>;
+
+  // Statistics
+  getStatistics(): Promise<{
+    activePRs: number;
+    reportsGenerated: number;
+    connectedRepos: number;
+    testScenariosGenerated: number;
+  }>;
+}
+
+export class DatabaseStorage implements IStorage {
+  async getRepositories(): Promise<Repository[]> {
+    return await db.select().from(repositories).orderBy(desc(repositories.createdAt));
+  }
+
+  async getRepository(id: string): Promise<Repository | undefined> {
+    const [repository] = await db.select().from(repositories).where(eq(repositories.id, id));
+    return repository || undefined;
+  }
+
+  async getRepositoryByFullName(fullName: string): Promise<Repository | undefined> {
+    const [repository] = await db.select().from(repositories).where(eq(repositories.fullName, fullName));
+    return repository || undefined;
+  }
+
+  async createRepository(repository: InsertRepository): Promise<Repository> {
+    const [created] = await db.insert(repositories).values(repository).returning();
+    return created;
+  }
+
+  async updateRepository(id: string, updates: Partial<InsertRepository>): Promise<Repository | undefined> {
+    const [updated] = await db
+      .update(repositories)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(repositories.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteRepository(id: string): Promise<boolean> {
+    const result = await db.delete(repositories).where(eq(repositories.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getPullRequestsByRepository(repositoryId: string): Promise<PullRequest[]> {
+    return await db
+      .select()
+      .from(pullRequests)
+      .where(eq(pullRequests.repositoryId, repositoryId))
+      .orderBy(desc(pullRequests.updatedAt));
+  }
+
+  async getPullRequest(id: string): Promise<PullRequest | undefined> {
+    const [pullRequest] = await db.select().from(pullRequests).where(eq(pullRequests.id, id));
+    return pullRequest || undefined;
+  }
+
+  async getPullRequestByGithubId(githubId: number): Promise<PullRequest | undefined> {
+    const [pullRequest] = await db.select().from(pullRequests).where(eq(pullRequests.githubId, githubId));
+    return pullRequest || undefined;
+  }
+
+  async createPullRequest(pullRequest: InsertPullRequest): Promise<PullRequest> {
+    const [created] = await db.insert(pullRequests).values(pullRequest).returning();
+    return created;
+  }
+
+  async updatePullRequest(id: string, updates: Partial<InsertPullRequest>): Promise<PullRequest | undefined> {
+    const [updated] = await db
+      .update(pullRequests)
+      .set(updates)
+      .where(eq(pullRequests.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async getRecentPullRequests(limit = 10): Promise<(PullRequest & { repository: Repository })[]> {
+    const result = await db
+      .select()
+      .from(pullRequests)
+      .leftJoin(repositories, eq(pullRequests.repositoryId, repositories.id))
+      .orderBy(desc(pullRequests.updatedAt))
+      .limit(limit);
+
+    return result.map(row => ({
+      ...row.pull_requests,
+      repository: row.repositories!
+    }));
+  }
+
+  async getReportsByPullRequest(pullRequestId: string): Promise<Report[]> {
+    return await db
+      .select()
+      .from(reports)
+      .where(eq(reports.pullRequestId, pullRequestId))
+      .orderBy(desc(reports.generatedAt));
+  }
+
+  async getReport(id: string): Promise<Report | undefined> {
+    const [report] = await db.select().from(reports).where(eq(reports.id, id));
+    return report || undefined;
+  }
+
+  async createReport(report: InsertReport): Promise<Report> {
+    const [created] = await db.insert(reports).values(report).returning();
+    return created;
+  }
+
+  async updateReport(id: string, updates: Partial<InsertReport>): Promise<Report | undefined> {
+    const [updated] = await db
+      .update(reports)
+      .set(updates)
+      .where(eq(reports.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async getReportsCount(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)` }).from(reports);
+    return result.count;
+  }
+
+  async getInsightsByRepository(repositoryId: string): Promise<Insight[]> {
+    return await db
+      .select()
+      .from(insights)
+      .where(eq(insights.repositoryId, repositoryId))
+      .orderBy(desc(insights.createdAt));
+  }
+
+  async createInsight(insight: InsertInsight): Promise<Insight> {
+    const [created] = await db.insert(insights).values(insight).returning();
+    return created;
+  }
+
+  async getRecentInsights(repositoryId?: string): Promise<Insight[]> {
+    const query = db.select().from(insights);
+    
+    if (repositoryId) {
+      query.where(eq(insights.repositoryId, repositoryId));
+    }
+    
+    return await query.orderBy(desc(insights.createdAt)).limit(10);
+  }
+
+  async getStatistics() {
+    const [activePRsResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(pullRequests)
+      .where(eq(pullRequests.status, 'open'));
+
+    const [reportsResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(reports);
+
+    const [reposResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(repositories);
+
+    // Count test scenarios from QA reports
+    const [testScenariosResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(reports)
+      .where(eq(reports.audienceType, 'qa'));
+
+    return {
+      activePRs: activePRsResult.count,
+      reportsGenerated: reportsResult.count,
+      connectedRepos: reposResult.count,
+      testScenariosGenerated: testScenariosResult.count * 5, // Estimate 5 scenarios per QA report
+    };
+  }
+}
+
+export const storage = new DatabaseStorage();
