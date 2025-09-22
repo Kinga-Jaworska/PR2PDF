@@ -179,13 +179,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getRecentInsights(repositoryId?: string): Promise<Insight[]> {
-    const query = db.select().from(insights);
-    
     if (repositoryId) {
-      query.where(eq(insights.repositoryId, repositoryId));
+      return await db
+        .select()
+        .from(insights)
+        .where(eq(insights.repositoryId, repositoryId))
+        .orderBy(desc(insights.createdAt))
+        .limit(10);
     }
     
-    return await query.orderBy(desc(insights.createdAt)).limit(10);
+    return await db
+      .select()
+      .from(insights)
+      .orderBy(desc(insights.createdAt))
+      .limit(10);
   }
 
   async getStatistics() {
@@ -209,10 +216,10 @@ export class DatabaseStorage implements IStorage {
       .where(eq(reports.audienceType, 'qa'));
 
     return {
-      activePRs: activePRsResult.count,
-      reportsGenerated: reportsResult.count,
-      connectedRepos: reposResult.count,
-      testScenariosGenerated: testScenariosResult.count * 5, // Estimate 5 scenarios per QA report
+      activePRs: Number(activePRsResult.count),
+      reportsGenerated: Number(reportsResult.count),
+      connectedRepos: Number(reposResult.count),
+      testScenariosGenerated: Number(testScenariosResult.count) * 5, // Estimate 5 scenarios per QA report
     };
   }
 }
