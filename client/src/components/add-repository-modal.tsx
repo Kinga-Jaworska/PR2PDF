@@ -122,20 +122,8 @@ export default function AddRepositoryModal({ isOpen, onClose }: AddRepositoryMod
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="github-token" className="text-sm font-medium text-foreground mb-2 flex items-center justify-between">
+            <Label htmlFor="github-token" className="text-sm font-medium text-foreground mb-2 block">
               GitHub Personal Access Token
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={() => window.open('https://github.com/settings/personal-access-tokens/new', '_blank')}
-                data-testid="button-get-token"
-              >
-                <Github className="h-3 w-3 mr-1" />
-                Get Token
-                <ExternalLink className="h-3 w-3 ml-1" />
-              </Button>
             </Label>
             <Input
               id="github-token"
