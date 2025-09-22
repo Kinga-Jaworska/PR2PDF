@@ -23,7 +23,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertRepositorySchema.parse(req.body);
       
-      // Test GitHub token and repository access
+      // Check for demo mode tokens
+      const isDemoMode = validatedData.githubToken === "demo" || 
+                        validatedData.githubToken === "test" ||
+                        validatedData.fullName.toLowerCase().includes("demo");
+      
+      if (isDemoMode) {
+        // Create repository without GitHub validation for demo mode
+        console.log("Demo mode: Creating repository without GitHub validation");
+        const repository = await storage.createRepository({
+          ...validatedData,
+          githubToken: "demo-token-not-real"
+        });
+        
+        // Create some demo pull requests for testing
+        const demoPRs = [
+          {
+            repositoryId: repository.id,
+            number: 101,
+            title: "Add new authentication feature",
+            authorName: "demo-user",
+            authorAvatar: "https://github.com/demo-user.png",
+            status: "open",
+            reviewStatus: "pending",
+            githubId: 101,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            changes: JSON.stringify({
+              files: [
+                {
+                  filename: "auth.js",
+                  additions: 45,
+                  deletions: 12,
+                  patch: "@@ -1,3 +1,10 @@\n+// New authentication system\n+const auth = require('./auth-service');\n+\n export default function authenticate(req, res, next) {"
+                }
+              ]
+            })
+          },
+          {
+            repositoryId: repository.id,
+            number: 102,
+            title: "Fix bug in user dashboard",
+            authorName: "demo-dev",
+            authorAvatar: "https://github.com/demo-dev.png", 
+            status: "open",
+            reviewStatus: "approved",
+            githubId: 102,
+            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+            updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+            changes: JSON.stringify({
+              files: [
+                {
+                  filename: "dashboard.jsx",
+                  additions: 8,
+                  deletions: 3,
+                  patch: "@@ -15,7 +15,7 @@ function Dashboard() {\n-  const [loading, setLoading] = useState(true);\n+  const [loading, setLoading] = useState(false);"
+                }
+              ]
+            })
+          }
+        ];
+        
+        // Add demo pull requests to storage
+        for (const pr of demoPRs) {
+          await storage.createPullRequest(pr);
+        }
+        
+        return res.json(repository);
+      }
+      
+      // Normal mode: Test GitHub token and repository access
       const isValid = await githubService.validateRepository(
         validatedData.githubToken,
         validatedData.fullName

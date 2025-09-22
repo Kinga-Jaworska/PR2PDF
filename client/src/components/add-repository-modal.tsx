@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, X, Info } from "lucide-react";
+import { Plus, X, Info, ExternalLink, Github } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,22 +108,44 @@ export default function AddRepositoryModal({ isOpen, onClose }: AddRepositoryMod
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="github-token" className="text-sm font-medium text-foreground mb-2 block">
-              GitHub Token
+            <Label htmlFor="github-token" className="text-sm font-medium text-foreground mb-2 flex items-center justify-between">
+              GitHub Personal Access Token
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => window.open('https://github.com/settings/personal-access-tokens/new', '_blank')}
+                data-testid="button-get-token"
+              >
+                <Github className="h-3 w-3 mr-1" />
+                Get Token
+                <ExternalLink className="h-3 w-3 ml-1" />
+              </Button>
             </Label>
             <Input
               id="github-token"
               type="password"
-              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx or github_pat_xxxxx"
               value={formData.githubToken}
               onChange={(e) => setFormData(prev => ({ ...prev, githubToken: e.target.value }))}
               disabled={isSubmitting}
               data-testid="input-github-token"
             />
-            <p className="text-xs text-muted-foreground mt-1 flex items-center">
-              <Info className="mr-1 h-3 w-3" />
-              Your token is securely encrypted and stored locally
-            </p>
+            <div className="space-y-1 mt-1">
+              <p className="text-xs text-muted-foreground flex items-center">
+                <Info className="mr-1 h-3 w-3" />
+                Your token is stored securely and never shared
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-400">
+                Required permissions: repo (for private repos) or public_repo (for public repos)
+              </p>
+              <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800">
+                <p className="text-xs text-yellow-800 dark:text-yellow-200 font-medium">
+                  🚀 Quick Test: Use "demo" or "test" as token to try the app without GitHub setup
+                </p>
+              </div>
+            </div>
           </div>
 
           <div>
@@ -133,15 +155,41 @@ export default function AddRepositoryModal({ isOpen, onClose }: AddRepositoryMod
             <Input
               id="repository-name"
               type="text"
-              placeholder="owner/repository-name"
+              placeholder="Evidence_FE (default) or owner/repository-name"
               value={formData.fullName}
               onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
               disabled={isSubmitting}
               data-testid="input-repository-name"
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              e.g., facebook/react or https://github.com/facebook/react
-            </p>
+            <div className="space-y-1 mt-1">
+              <p className="text-xs text-muted-foreground">
+                Examples: facebook/react, Evidence_FE, or full URL
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setFormData(prev => ({ ...prev, fullName: "Evidence_FE" }))}
+                  disabled={isSubmitting}
+                  data-testid="button-set-evidence"
+                >
+                  Use Evidence_FE
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => setFormData(prev => ({ ...prev, fullName: "facebook/react" }))}
+                  disabled={isSubmitting}
+                  data-testid="button-set-react"
+                >
+                  Try React (demo)
+                </Button>
+              </div>
+            </div>
           </div>
 
           <div>
