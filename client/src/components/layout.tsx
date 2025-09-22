@@ -1,0 +1,69 @@
+import { Link, useLocation } from "wouter";
+import { Home, GitPullRequest, BarChart3 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+export default function Layout({ children }: LayoutProps) {
+  const [location] = useLocation();
+
+  const navItems = [
+    {
+      path: "/",
+      label: "Dashboard",
+      icon: Home,
+      testId: "nav-dashboard"
+    },
+    {
+      path: "/pull-requests",
+      label: "Pull Requests", 
+      icon: GitPullRequest,
+      testId: "nav-pull-requests"
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Navigation Header */}
+      <header className="border-b bg-card">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <h1 className="text-xl font-bold text-foreground flex items-center">
+                <BarChart3 className="mr-2 h-6 w-6" />
+                PR Insight
+              </h1>
+              <nav className="flex space-x-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location === item.path;
+                  
+                  return (
+                    <Button
+                      key={item.path}
+                      variant={isActive ? "default" : "ghost"}
+                      asChild
+                      data-testid={item.testId}
+                    >
+                      <Link href={item.path}>
+                        <Icon className="mr-2 h-4 w-4" />
+                        {item.label}
+                      </Link>
+                    </Button>
+                  );
+                })}
+              </nav>
+            </div>
+          </div>
+        </div>
+      </header>
+      
+      {/* Main Content */}
+      <main>
+        {children}
+      </main>
+    </div>
+  );
+}

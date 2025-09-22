@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, jsonb, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, jsonb, integer, boolean, bigint } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -27,7 +27,7 @@ export const pullRequests = pgTable("pull_requests", {
   updatedAt: timestamp("updated_at").notNull(),
   mergedAt: timestamp("merged_at"),
   changes: jsonb("changes"), // Store diff/changes data
-  githubId: integer("github_id").notNull().unique(),
+  githubId: bigint("github_id", { mode: "number" }).notNull().unique(),
 });
 
 export const reports = pgTable("reports", {
