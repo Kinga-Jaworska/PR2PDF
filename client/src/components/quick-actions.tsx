@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, RefreshCw, Lightbulb, Check, AlertTriangle } from "lucide-react";
+import { Sparkles, RefreshCw, Lightbulb, Check, AlertTriangle, Users, TestTube, UserCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,16 @@ interface Insight {
   severity: string;
 }
 
+interface Template {
+  id: string;
+  name: string;
+  description: string;
+  type: "pm" | "qa" | "client";
+  content: string;
+  isDefault: boolean;
+  createdAt: Date;
+}
+
 interface QuickActionsProps {
   repositories: Repository[];
   insights: Insight[];
@@ -30,11 +40,42 @@ interface QuickActionsProps {
 }
 
 export default function QuickActions({ repositories, insights, isInsightsLoading }: QuickActionsProps) {
-  const [selectedAudience, setSelectedAudience] = useState<string>("pm");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [selectedRepository, setSelectedRepository] = useState<string>("");
   const [selectedTimeRange, setSelectedTimeRange] = useState<string>("last-7-days");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { toast } = useToast();
+
+  // Default templates
+  const defaultTemplates: Template[] = [
+    {
+      id: "pm-default",
+      name: "Project Manager Report",
+      description: "Comprehensive overview for project managers with timeline and impact analysis",
+      type: "pm",
+      content: "",
+      isDefault: true,
+      createdAt: new Date()
+    },
+    {
+      id: "qa-default", 
+      name: "QA Testing Report",
+      description: "Detailed testing scenarios and quality assurance checklist",
+      type: "qa",
+      content: "",
+      isDefault: true,
+      createdAt: new Date()
+    },
+    {
+      id: "client-default",
+      name: "Client Update Report", 
+      description: "Client-friendly summary with business value and user impact",
+      type: "client",
+      content: "",
+      isDefault: true,
+      createdAt: new Date()
+    }
+  ];
 
   const handleGenerateCustomReport = async () => {
     if (!selectedRepository) {
@@ -46,11 +87,29 @@ export default function QuickActions({ repositories, insights, isInsightsLoading
       return;
     }
 
+    if (!selectedTemplate) {
+      toast({
+        title: "Select template",
+        description: "Please select a template to generate a report with.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      // This would generate a custom report based on the selections
+      const template = defaultTemplates.find(t => t.id === selectedTemplate);
+      if (!template) {
+        toast({
+          title: "Template not found",
+          description: "Please select a valid template.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "Report generation started",
-        description: "Your custom report is being generated with AI.",
+        description: `Your ${template.name} is being generated with AI.`,
       });
     } catch (error) {
       console.error("Error generating custom report:", error);
@@ -59,6 +118,15 @@ export default function QuickActions({ repositories, insights, isInsightsLoading
         description: "Failed to generate custom report. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const getTemplateIcon = (type: string) => {
+    switch (type) {
+      case "pm": return <Users className="h-4 w-4" />;
+      case "qa": return <TestTube className="h-4 w-4" />;
+      case "client": return <UserCheck className="h-4 w-4" />;
+      default: return <Sparkles className="h-4 w-4" />;
     }
   };
 
@@ -116,35 +184,27 @@ export default function QuickActions({ repositories, insights, isInsightsLoading
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label className="text-sm font-medium text-foreground mb-2 block">Target Audience</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { value: "pm", label: "PM", subtitle: "Project Manager" },
-                { value: "qa", label: "QA", subtitle: "Quality Assurance" },
-                { value: "client", label: "Client", subtitle: "Stakeholder" }
-              ].map((audience) => (
-                <label 
-                  key={audience.value}
-                  className={`flex items-center p-3 border border-border rounded-md cursor-pointer hover:bg-muted/50 transition-colors ${
-                    selectedAudience === audience.value ? 'border-primary bg-primary/5' : ''
-                  }`}
-                  data-testid={`radio-audience-${audience.value}`}
-                >
-                  <input 
-                    type="radio" 
-                    name="audience" 
-                    value={audience.value}
-                    checked={selectedAudience === audience.value}
-                    onChange={(e) => setSelectedAudience(e.target.value)}
-                    className="sr-only" 
-                  />
-                  <div className="ml-3">
-                    <div className="text-sm font-medium text-foreground">{audience.label}</div>
-                    <div className="text-xs text-muted-foreground">{audience.subtitle}</div>
-                  </div>
-                </label>
-              ))}
-            </div>
+            <Label htmlFor="template-select" className="text-sm font-medium text-foreground mb-2 block">
+              Select Template
+            </Label>
+            <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+              <SelectTrigger data-testid="select-template">
+                <SelectValue placeholder="Choose a report template" />
+              </SelectTrigger>
+              <SelectContent>
+                {defaultTemplates.map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    <div className="flex items-center gap-2">
+                      {getTemplateIcon(template.type)}
+                      <div>
+                        <div className="text-sm font-medium">{template.name}</div>
+                        <div className="text-xs text-muted-foreground">{template.description}</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -186,6 +246,7 @@ export default function QuickActions({ repositories, insights, isInsightsLoading
           <Button 
             className="w-full" 
             onClick={handleGenerateCustomReport}
+            disabled={!selectedTemplate || !selectedRepository}
             data-testid="button-generate-custom-report"
           >
             <Sparkles className="mr-2 h-4 w-4" />

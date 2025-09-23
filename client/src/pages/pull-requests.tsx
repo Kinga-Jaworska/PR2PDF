@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { GitBranch, Clock, User, FileText, Download, RefreshCw } from "lucide-react";
+import { GitBranch, Clock, User, FileText, Download, RefreshCw, Users, TestTube, UserCheck } from "lucide-react";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
@@ -30,11 +30,53 @@ interface PullRequest {
   };
 }
 
+interface Template {
+  id: string;
+  name: string;
+  description: string;
+  type: "pm" | "qa" | "client";
+  content: string;
+  isDefault: boolean;
+  createdAt: Date;
+}
+
 export default function PullRequestsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [repositoryFilter, setRepositoryFilter] = useState<string>("all");
+  const [selectedTemplate, setSelectedTemplate] = useState<{[key: string]: string}>({});
   const { toast } = useToast();
+
+  // Default templates
+  const defaultTemplates: Template[] = [
+    {
+      id: "pm-default",
+      name: "Project Manager Report",
+      description: "Comprehensive overview for project managers with timeline and impact analysis",
+      type: "pm",
+      content: "",
+      isDefault: true,
+      createdAt: new Date()
+    },
+    {
+      id: "qa-default", 
+      name: "QA Testing Report",
+      description: "Detailed testing scenarios and quality assurance checklist",
+      type: "qa",
+      content: "",
+      isDefault: true,
+      createdAt: new Date()
+    },
+    {
+      id: "client-default",
+      name: "Client Update Report", 
+      description: "Client-friendly summary with business value and user impact",
+      type: "client",
+      content: "",
+      isDefault: true,
+      createdAt: new Date()
+    }
+  ];
 
   const { data: pullRequests = [], isLoading, refetch } = useQuery<PullRequest[]>({
     queryKey: ["/api/pull-requests"],
@@ -54,21 +96,43 @@ export default function PullRequestsPage() {
     return matchesSearch && matchesStatus && matchesRepository;
   });
 
-  const handleGenerateReport = async (pullRequestId: string, audienceType: string) => {
+  const handleGenerateReport = async (pullRequestId: string, templateId: string) => {
     try {
+      const template = defaultTemplates.find(t => t.id === templateId);
+      if (!template) {
+        toast({
+          title: "Template not found",
+          description: "Please select a valid template.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       await apiRequest("POST", `/api/pull-requests/${pullRequestId}/reports`, {
-        audienceType,
+        audienceType: template.type,
       });
       toast({
         title: "Report generated",
-        description: "The report has been generated successfully.",
+        description: `The ${template.name} has been generated successfully.`,
       });
+      
+      // Clear the selection after successful generation
+      setSelectedTemplate(prev => ({...prev, [pullRequestId]: ""}));
     } catch (error) {
       toast({
         title: "Failed to generate report",
         description: "Please try again later.",
         variant: "destructive",
       });
+    }
+  };
+
+  const getTemplateIcon = (type: string) => {
+    switch (type) {
+      case "pm": return <Users className="h-4 w-4" />;
+      case "qa": return <TestTube className="h-4 w-4" />;
+      case "client": return <UserCheck className="h-4 w-4" />;
+      default: return <FileText className="h-4 w-4" />;
     }
   };
 
@@ -237,17 +301,32 @@ export default function PullRequestsPage() {
                     </div>
 
                     {/* Actions */}
-                    <div className="flex gap-2">
-                      <Select onValueChange={(audienceType) => handleGenerateReport(pr.id, audienceType)}>
-                        <SelectTrigger className="w-40" data-testid={`select-generate-${pr.number}`}>
-                          <SelectValue placeholder="Generate Report" />
+                    <div className="flex gap-2 items-center">
+                      <Select 
+                        value={selectedTemplate[pr.id] || ""} 
+                        onValueChange={(templateId) => setSelectedTemplate(prev => ({...prev, [pr.id]: templateId}))}
+                      >
+                        <SelectTrigger className="w-48" data-testid={`select-template-${pr.number}`}>
+                          <SelectValue placeholder="Select Template" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="pm">PM Report</SelectItem>
-                          <SelectItem value="qa">QA Report</SelectItem>
-                          <SelectItem value="client">Client Report</SelectItem>
+                          {defaultTemplates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              <div className="flex items-center gap-2">
+                                {getTemplateIcon(template.type)}
+                                <span>{template.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
+                      <Button 
+                        onClick={() => selectedTemplate[pr.id] && handleGenerateReport(pr.id, selectedTemplate[pr.id])}
+                        disabled={!selectedTemplate[pr.id]}
+                        data-testid={`button-create-report-${pr.number}`}
+                      >
+                        Create Report
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
