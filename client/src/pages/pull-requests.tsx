@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { GitBranch, Clock, User, FileText, Download, RefreshCw, Users, TestTube, UserCheck } from "lucide-react";
+import { GitBranch, Clock, User, FileText, Download, RefreshCw, Users, TestTube, UserCheck, AlertTriangle, AlertCircle, AlertOctagon, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
@@ -162,6 +162,46 @@ export default function PullRequestsPage() {
     }
   };
 
+  const assessPRRisk = (pr: PullRequest): 'risky' | 'less-risky' | 'warnings' | 'not-problematic' => {
+    // Risky PRs (red) - closed, changes requested, or problematic patterns
+    if (pr.status === 'closed' || pr.reviewStatus === 'changes_requested') {
+      return 'risky';
+    }
+    
+    // Less risky PRs (orange) - pending review for extended time or complex changes
+    if (pr.status === 'open' && !pr.reviewStatus) {
+      return 'less-risky';
+    }
+    
+    // Warnings (yellow) - open with some review activity but not merged
+    if (pr.status === 'open' && pr.reviewStatus && pr.reviewStatus !== 'approved') {
+      return 'warnings';
+    }
+    
+    // Not problematic (green) - merged or approved
+    if (pr.status === 'merged' || pr.reviewStatus === 'approved') {
+      return 'not-problematic';
+    }
+    
+    // Default to warnings for unknown states
+    return 'warnings';
+  };
+
+  const getRiskIcon = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'risky':
+        return <AlertOctagon className="h-4 w-4 text-red-500" data-testid="risk-icon-risky" />;
+      case 'less-risky':
+        return <AlertTriangle className="h-4 w-4 text-orange-500" data-testid="risk-icon-less-risky" />;
+      case 'warnings':
+        return <AlertCircle className="h-4 w-4 text-yellow-500" data-testid="risk-icon-warnings" />;
+      case 'not-problematic':
+        return <CheckCircle className="h-4 w-4 text-green-500" data-testid="risk-icon-not-problematic" />;
+      default:
+        return <AlertCircle className="h-4 w-4 text-yellow-500" data-testid="risk-icon-default" />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto p-6">
@@ -259,28 +299,31 @@ export default function PullRequestsPage() {
         ) : (
           <div className="space-y-4">
             {filteredPullRequests.map((pr) => (
-              <Card key={pr.id} data-testid={`pr-card-${pr.number}`}>
-                <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      {/* PR Header */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <GitBranch className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium text-sm text-muted-foreground">
-                          {pr.repository.fullName}#{pr.number}
-                        </span>
-                        <Badge className={getStatusColor(pr.status)}>
-                          {pr.status}
-                        </Badge>
-                        {pr.reviewStatus && (
-                          <Badge variant="outline" className={getReviewStatusColor(pr.reviewStatus)}>
-                            {pr.reviewStatus.replace('_', ' ')}
+                <Card key={pr.id} data-testid={`pr-card-${pr.number}`}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        {/* PR Header */}
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            {getRiskIcon(assessPRRisk(pr))}
+                            <GitBranch className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                          <span className="font-medium text-sm text-muted-foreground">
+                            {pr.repository.fullName}#{pr.number}
+                          </span>
+                          <Badge className={getStatusColor(pr.status)}>
+                            {pr.status}
                           </Badge>
-                        )}
-                      </div>
+                          {pr.reviewStatus && (
+                            <Badge variant="outline" className={getReviewStatusColor(pr.reviewStatus)}>
+                              {pr.reviewStatus.replace('_', ' ')}
+                            </Badge>
+                          )}
+                        </div>
 
-                      {/* PR Title */}
-                      <h3 className="text-lg font-semibold mb-2">{pr.title}</h3>
+                        {/* PR Title */}
+                        <h3 className="text-lg font-semibold mb-2">{pr.title}</h3>
 
                       {/* PR Meta */}
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -298,7 +341,7 @@ export default function PullRequestsPage() {
                           </div>
                         )}
                       </div>
-                    </div>
+                      </div>
 
                     {/* Actions */}
                     <div className="flex gap-2 items-center">
