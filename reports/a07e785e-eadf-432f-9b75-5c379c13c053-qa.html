@@ -1,0 +1,163 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA Analysis for Tanstack Query & Feature Implementation</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            border-bottom: 3px solid #4F46E5;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #4F46E5;
+            margin: 0;
+            font-size: 28px;
+        }
+        .audience-badge {
+            background: #4F46E5;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .summary {
+            background: #F8FAFC;
+            padding: 20px;
+            border-left: 4px solid #4F46E5;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section h2 {
+            color: #1E293B;
+            border-bottom: 2px solid #E2E8F0;
+            padding-bottom: 5px;
+        }
+        .test-scenarios {
+            background: #FEF3C7;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #F59E0B;
+        }
+        .recommendations {
+            background: #ECFDF5;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #10B981;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #E2E8F0;
+            text-align: center;
+            color: #6B7280;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>QA Analysis for Tanstack Query & Feature Implementation</h1>
+        <span class="audience-badge">Report for Quality Assurance</span>
+    </div>
+
+    <div class="summary">
+        <h2>Executive Summary</h2>
+        <p>This pull request introduces a major architectural overhaul by integrating Tanstack Query for server state management and Redux Toolkit for client state. It also delivers significant new features, including a task creation form, a task listing view, and a CSV data export function. The UI has been refactored from standard CSS to SCSS, with numerous new components being added. Due to the breadth and depth of these changes, a thorough, multi-layered testing approach is critical to ensure application stability, data integrity, and a seamless user experience.</p>
+    </div>
+
+    
+        <div class="section">
+            <h2>Testing Strategy Overview</h2>
+            <p>The testing strategy must focus on three core areas: the new data-fetching layer (Tanstack Query), the state management logic (Redux), and the new task management user flow (Add/List/Export). We will employ a combination of component-level testing for the new UI elements, integration testing to validate the interaction between the frontend and backend APIs, and end-to-end testing for the critical user paths. Special attention must be paid to caching behavior, loading states, and error handling introduced by Tanstack Query.</p>
+            
+                <ul>
+                    
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Functional Testing Requirements</h2>
+            <p>Functional testing will verify that all new features operate according to specifications.</p>
+            
+                <ul>
+                    <li>Task Creation Form (`AddForm`): Validate all input fields, including required fields (title, start time), date/time constraints (start before end), and successful submission logic. Verify correct payload construction and API calls.</li><li>Task Listing (`HomePageContent`): Test the data fetching lifecycle: loading state, successful data rendering, and error state. Ensure tasks are correctly grouped and displayed. Verify duration calculation and formatting.</li><li>CSV Download: Confirm that clicking the download button triggers a GET request to the correct endpoint and initiates a file download. The downloaded file should be named correctly and contain valid data.</li><li>UI Component Validation: Each new component (`BaseInput`, `Button`, `TaskTable`, `TaskItem`) must be tested in isolation to ensure it renders correctly and handles user interactions as expected.</li><li>Navigation: Verify that navigation between the home page and the new `/add` page functions correctly.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Non-functional Testing Considerations</h2>
+            <p>Beyond core functionality, we must assess performance, security, and usability.</p>
+            
+                <ul>
+                    <li>Performance Testing: Analyze the caching strategy of Tanstack Query to ensure it effectively reduces redundant API calls. Measure the initial load time of the task list page and the responsiveness of the task creation form.</li><li>Security Testing: The hardcoded `user_id: 2` in both task creation and CSV download is a critical vulnerability (Insecure Direct Object Reference). This must be flagged and tested to ensure users cannot access or create data for other users. All form inputs must be validated on the backend to prevent injection attacks.</li><li>Usability & UX: Assess the clarity and helpfulness of validation messages, loading indicators, and error toasts. Ensure the application provides clear feedback to the user during asynchronous operations.</li><li>Cross-Browser Compatibility: Test the new UI components and layouts on major browsers (Chrome, Firefox, Safari, Edge) to ensure consistent rendering and functionality.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Test Environment Setup Needs</h2>
+            <p>A stable test environment is required to execute the test plan effectively.</p>
+            
+                <ul>
+                    <li>Backend API: A deployed instance of the backend service (`http://localhost:3000/api/v1/...`) is required. The database should be seeded with a diverse set of task data for multiple users to test fetching, grouping, and security.</li><li>Network Simulation: Use browser developer tools to simulate various network conditions (e.g., slow 3G, offline) to test Tanstack Query's caching, retries, and offline behavior.</li><li>Developer Tools: Require testers to have access to React Developer Tools and Redux DevTools to inspect component state, props, and the Redux store during test execution.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Risk-based Testing Prioritization</h2>
+            <p>Testing efforts should be prioritized based on the risk and impact of potential failures.</p>
+            
+                <ul>
+                    <li>High Priority: The entire task creation flow, including Formik validation and Tanstack Query mutation. The CSV download functionality, focusing on security and data integrity. Data fetching and caching logic for the task list.</li><li>Medium Priority: Correct rendering and grouping of tasks on the home page. Responsiveness and styling of all new components across different screen sizes.</li><li>Low Priority: Static content rendering and basic component appearance. The removal of old CSS files.</li>
+                </ul>
+            
+        </div>
+    
+
+    
+        <div class="test-scenarios">
+            <h2>📋 Recommended Test Scenarios</h2>
+            <ul>
+                <li>Verify submitting the 'Add Task' form with an empty 'Title' field displays the 'Title is required' error message.</li><li>Verify submitting the 'Add Task' form with a 'Start Time' that is later than the 'End Time' displays the 'Start time have to be before end time' error.</li><li>Successfully fill out and submit the 'Add Task' form and verify that the form fields are cleared and a POST request is sent to the `/api/v1/tasks` endpoint with the correct payload.</li><li>Simulate a 500 server error on task submission and confirm that a user-friendly 'Error' toast message is displayed.</li><li>On the home page, verify a 'Loading...' message is displayed while the task data is being fetched.</li><li>After tasks are fetched successfully, verify they are grouped correctly by date (or other key) and that the task title and formatted duration (e.g., '1h 30 min') are displayed.</li><li>Simulate a network error when fetching the task list and verify that an 'Error' message is shown to the user.</li><li>Click the 'Download CSV' button and confirm it initiates a file download with the name format '{userId}-evidence.csv'.</li><li>Test the 'Add Task' form by entering a description containing special characters (`<script>`, `&`, `"`) to check for proper handling and prevention of XSS.</li><li>Verify the `duration` field is calculated correctly based on the provided `start_time` and `end_time` before being sent to the backend.</li><li>Check Tanstack Query's cache behavior by navigating away from the home page and back, verifying that data is served from the cache initially.</li><li>Navigate from the home page to the '/add' page and back to ensure the application state (Redux/React Query) remains consistent.</li><li>Submit the form with only the required fields ('title', 'start_time') and an empty 'end_time' to see how the system handles incomplete optional data.</li><li>Verify all new UI components are responsive and display correctly on both desktop and mobile viewports.</li>
+            </ul>
+        </div>
+    
+
+    
+        <div class="recommendations">
+            <h2>💡 Recommendations</h2>
+            <ul>
+                <li>Critical: Remove the hardcoded `user_id: 2`. Implement a proper authentication mechanism to retrieve the current user's ID and use it in all API requests.</li><li>Implement comprehensive end-to-end tests for the 'create task' and 'download CSV' user flows using a framework like Cypress or Playwright.</li><li>Enhance user feedback by adding loading indicators on buttons during submission and providing more descriptive success/error messages instead of generic 'Error' toasts.</li><li>Add unit tests for pure functions, such as the `ChangeDurationFormat` utility and the Formik validation logic, to catch regressions early.</li>
+            </ul>
+        </div>
+    
+
+    <div class="footer">
+        <p>Generated by PR Insight • 9/23/2025</p>
+    </div>
+</body>
+</html>
