@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import * as fs from "fs";
 import { storage } from "./storage";
 import { githubService } from "./services/github";
 import { geminiService } from "./services/gemini";
@@ -250,9 +251,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Report not found" });
       }
 
-      // Since we're generating HTML files, serve them as HTML
+      // Convert to HTML path for preview
+      const htmlPath = report.pdfPath.endsWith('.pdf') ? report.pdfPath.replace('.pdf', '.html') : report.pdfPath;
+      
+      // Check if HTML file exists
+      if (!fs.existsSync(htmlPath)) {
+        return res.status(404).json({ message: "Preview file not found" });
+      }
+
       res.setHeader('Content-Type', 'text/html');
-      res.sendFile(report.pdfPath, { 
+      res.sendFile(htmlPath, { 
         root: '/',
         // Handle absolute paths by using root: '/'
       });
@@ -270,8 +278,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Report not found" });
       }
 
-      // Set proper filename for download
-      const filename = `report-${report.id}-${report.audienceType}.html`;
+      // Check if we have a valid PDF file
+      const hasPdf = report.pdfPath.endsWith('.pdf') && fs.existsSync(report.pdfPath);
+      
+      if (!hasPdf) {
+        // Legacy report or PDF doesn't exist - try to regenerate from content
+        if (report.content && typeof report.content === 'object' && 'title' in report.content) {
+          try {
+            // Regenerate PDF from existing content
+            const pdfPath = await pdfService.generatePDF(report.id, report.content as any, report.audienceType);
+            await storage.updateReport(report.id, { pdfPath });
+            
+            // Now serve the PDF
+            const filename = `report-${report.id}-${report.audienceType}.pdf`;
+            res.setHeader('Content-Type', 'application/pdf');
+            return res.download(pdfPath, filename);
+          } catch (pdfError) {
+            console.error("Error regenerating PDF:", pdfError);
+            // Fall back to HTML if PDF generation fails
+            const htmlPath = report.pdfPath.endsWith('.html') ? report.pdfPath : report.pdfPath.replace('.pdf', '.html');
+            if (fs.existsSync(htmlPath)) {
+              const filename = `report-${report.id}-${report.audienceType}.html`;
+              res.setHeader('Content-Type', 'text/html');
+              return res.download(htmlPath, filename);
+            } else {
+              return res.status(404).json({ message: "Report file not found" });
+            }
+          }
+        } else {
+          // No content to regenerate from, try to serve HTML if it exists
+          const htmlPath = report.pdfPath.endsWith('.html') ? report.pdfPath : report.pdfPath.replace('.pdf', '.html');
+          if (fs.existsSync(htmlPath)) {
+            const filename = `report-${report.id}-${report.audienceType}.html`;
+            res.setHeader('Content-Type', 'text/html');
+            return res.download(htmlPath, filename);
+          } else {
+            return res.status(404).json({ message: "Report file not found" });
+          }
+        }
+      }
+
+      // Set proper filename for download - now as PDF
+      const filename = `report-${report.id}-${report.audienceType}.pdf`;
+      
+      // Set proper content type for PDF
+      res.setHeader('Content-Type', 'application/pdf');
       res.download(report.pdfPath, filename);
     } catch (error) {
       console.error("Error downloading report:", error);

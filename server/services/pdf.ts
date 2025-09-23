@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import puppeteer from 'puppeteer';
 
 interface ReportContent {
   title: string;
@@ -21,19 +22,45 @@ class PDFService {
   }
 
   async generatePDF(reportId: string, content: ReportContent, audienceType: string): Promise<string> {
-    // For now, we'll generate a simple HTML file that can be converted to PDF
-    // In a production environment, you'd use libraries like puppeteer or jsPDF
     const reportsDir = path.join(process.cwd(), 'reports');
     this.ensureDirectoryExists(reportsDir);
 
-    const filename = `${reportId}-${audienceType}.html`;
-    const filepath = path.join(reportsDir, filename);
+    const pdfFilename = `${reportId}-${audienceType}.pdf`;
+    const htmlFilename = `${reportId}-${audienceType}.html`;
+    const pdfFilepath = path.join(reportsDir, pdfFilename);
+    const htmlFilepath = path.join(reportsDir, htmlFilename);
 
     const html = this.generateHTMLReport(content, audienceType);
     
-    fs.writeFileSync(filepath, html, 'utf8');
+    // Generate HTML file for preview
+    fs.writeFileSync(htmlFilepath, html, 'utf8');
     
-    return filepath;
+    // Use puppeteer to generate actual PDF
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
+    });
+    
+    try {
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      
+      await page.pdf({
+        path: pdfFilepath,
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '20px',
+          right: '20px',
+          bottom: '20px',
+          left: '20px'
+        }
+      });
+      
+      return pdfFilepath;
+    } finally {
+      await browser.close();
+    }
   }
 
   private generateHTMLReport(content: ReportContent, audienceType: string): string {
