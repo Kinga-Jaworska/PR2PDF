@@ -35,10 +35,8 @@ export default function Sidebar({ repositories, isLoading, onAddRepository }: Si
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4">
-        
-
+      {/* Repository List */}
+      <div className="flex-1 p-4">
         <div className="mt-8">
           <h3 className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
             Connected Repos
@@ -78,22 +76,6 @@ export default function Sidebar({ repositories, isLoading, onAddRepository }: Si
             <Plus className="mr-2 h-4 w-4" />
             Add Repository
           </Button>
-        </div>
-      </nav>
-
-      {/* User Profile */}
-      <div className="p-4 border-t border-border">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-            <span className="text-sm font-medium text-primary-foreground">JD</span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">John Developer</p>
-            <p className="text-xs text-muted-foreground truncate">Senior QA Engineer</p>
-          </div>
-          <button className="text-muted-foreground hover:text-foreground" data-testid="button-settings">
-            <Settings className="h-4 w-4" />
-          </button>
         </div>
       </div>
     </aside>

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, GitPullRequest, BarChart3, Database, FileText } from "lucide-react";
+import { Home, GitPullRequest, BarChart3, Database, FileText, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface LayoutProps {
@@ -67,6 +67,20 @@ export default function Layout({ children }: LayoutProps) {
                   );
                 })}
               </nav>
+            </div>
+            
+            {/* User Profile */}
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                <span className="text-sm font-medium text-primary-foreground">JD</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">John Developer</p>
+                <p className="text-xs text-muted-foreground truncate">Senior QA Engineer</p>
+              </div>
+              <button className="text-muted-foreground hover:text-foreground" data-testid="button-settings">
+                <Settings className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>
