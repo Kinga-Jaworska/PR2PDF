@@ -49,6 +49,17 @@ export const insights = pgTable("insights", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const reportTemplates = pgTable("report_templates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  description: text("description"),
+  audienceType: text("audience_type").notNull(), // "pm", "qa", "client"
+  templateContent: jsonb("template_content").notNull(), // Template structure with prompts, sections, etc.
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const repositoriesRelations = relations(repositories, ({ many }) => ({
   pullRequests: many(pullRequests),
@@ -98,6 +109,12 @@ export const insertInsightSchema = createInsertSchema(insights).omit({
   createdAt: true,
 });
 
+export const insertReportTemplateSchema = createInsertSchema(reportTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Repository = typeof repositories.$inferSelect;
 export type InsertRepository = z.infer<typeof insertRepositorySchema>;
@@ -107,3 +124,5 @@ export type Report = typeof reports.$inferSelect;
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type Insight = typeof insights.$inferSelect;
 export type InsertInsight = z.infer<typeof insertInsightSchema>;
+export type ReportTemplate = typeof reportTemplates.$inferSelect;
+export type InsertReportTemplate = z.infer<typeof insertReportTemplateSchema>;
