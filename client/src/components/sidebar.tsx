@@ -37,58 +37,7 @@ export default function Sidebar({ repositories, isLoading, onAddRepository }: Si
 
       {/* Navigation */}
       <nav className="flex-1 p-4">
-        <ul className="space-y-1">
-          <li>
-            <a 
-              href="#" 
-              className="flex items-center space-x-3 px-3 py-2 rounded-md bg-accent text-accent-foreground font-medium"
-              data-testid="nav-dashboard"
-            >
-              <Home className="w-5 h-5" />
-              <span>Dashboard</span>
-            </a>
-          </li>
-          <li>
-            <a 
-              href="#" 
-              className="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-              data-testid="nav-repositories"
-            >
-              <GitBranch className="w-5 h-5" />
-              <span>Repositories</span>
-            </a>
-          </li>
-          <li>
-            <a 
-              href="#" 
-              className="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-              data-testid="nav-pull-requests"
-            >
-              <GitMerge className="w-5 h-5" />
-              <span>Pull Requests</span>
-            </a>
-          </li>
-          <li>
-            <a 
-              href="#" 
-              className="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-              data-testid="nav-reports"
-            >
-              <FileText className="w-5 h-5" />
-              <span>Generated Reports</span>
-            </a>
-          </li>
-          <li>
-            <a 
-              href="#" 
-              className="flex items-center space-x-3 px-3 py-2 rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-              data-testid="nav-ai-settings"
-            >
-              <Bot className="w-5 h-5" />
-              <span>AI Settings</span>
-            </a>
-          </li>
-        </ul>
+        
 
         <div className="mt-8">
           <h3 className="px-3 text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
