@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, Download, Bot, Clock, Check, X } from "lucide-react";
+import { Eye, Download, Bot, Clock, Check, X, AlertTriangle, AlertCircle, AlertOctagon, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +51,46 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
       return <Badge className="bg-green-100 text-green-800"><Check className="mr-1 h-3 w-3" />Generated</Badge>;
     }
     return null;
+  };
+
+  const assessPRRisk = (pr: PullRequest): 'risky' | 'less-risky' | 'warnings' | 'not-problematic' => {
+    // Risky PRs (red) - closed, changes requested, or problematic patterns
+    if (pr.status === 'closed' || pr.reviewStatus === 'changes_requested') {
+      return 'risky';
+    }
+    
+    // Less risky PRs (orange) - pending review for extended time or complex changes
+    if (pr.status === 'open' && !pr.reviewStatus) {
+      return 'less-risky';
+    }
+    
+    // Warnings (yellow) - open with some review activity but not merged
+    if (pr.status === 'open' && pr.reviewStatus && pr.reviewStatus !== 'approved') {
+      return 'warnings';
+    }
+    
+    // Not problematic (green) - merged or approved
+    if (pr.status === 'merged' || pr.reviewStatus === 'approved') {
+      return 'not-problematic';
+    }
+    
+    // Default to warnings for unknown states
+    return 'warnings';
+  };
+
+  const getRiskIcon = (riskLevel: string) => {
+    switch (riskLevel) {
+      case 'risky':
+        return <AlertOctagon className="h-4 w-4 text-red-500" data-testid="risk-icon-risky" />;
+      case 'less-risky':
+        return <AlertTriangle className="h-4 w-4 text-orange-500" data-testid="risk-icon-less-risky" />;
+      case 'warnings':
+        return <AlertCircle className="h-4 w-4 text-yellow-500" data-testid="risk-icon-warnings" />;
+      case 'not-problematic':
+        return <CheckCircle className="h-4 w-4 text-green-500" data-testid="risk-icon-not-problematic" />;
+      default:
+        return <AlertCircle className="h-4 w-4 text-yellow-500" data-testid="risk-icon-default" />;
+    }
   };
 
   const handleGenerateReport = async (prId: string, audienceType: string = "pm") => {
@@ -179,13 +219,19 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
               {filteredPRs.map((pr) => {
                 const reportStatus = getReportStatus(pr);
                 const isGenerating = generatingReports.has(pr.id);
+                const riskLevel = assessPRRisk(pr);
                 
                 return (
                   <tr key={pr.id} className="hover:bg-muted/30 transition-colors" data-testid={`pr-row-${pr.number}`}>
                     <td className="px-6 py-4">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{pr.title}</p>
-                        <p className="text-xs text-muted-foreground font-mono">#{pr.number}</p>
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          {getRiskIcon(riskLevel)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{pr.title}</p>
+                          <p className="text-xs text-muted-foreground font-mono">#{pr.number}</p>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
