@@ -52,7 +52,7 @@ export default function ReportsPage() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `report-${reportId}.pdf`;
+        a.download = `report-${reportId}.html`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);

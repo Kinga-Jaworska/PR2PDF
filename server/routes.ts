@@ -242,32 +242,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Preview report PDF (inline)
+  // Preview report (inline HTML)
   app.get("/api/reports/:id/preview", async (req, res) => {
     try {
       const report = await storage.getReport(req.params.id);
       if (!report || !report.pdfPath) {
-        return res.status(404).json({ message: "Report PDF not found" });
+        return res.status(404).json({ message: "Report not found" });
       }
 
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'inline');
-      res.sendFile(report.pdfPath, { root: '.' });
+      // Since we're generating HTML files, serve them as HTML
+      res.setHeader('Content-Type', 'text/html');
+      res.sendFile(report.pdfPath, { 
+        root: '/',
+        // Handle absolute paths by using root: '/'
+      });
     } catch (error) {
       console.error("Error previewing report:", error);
       res.status(500).json({ message: "Failed to preview report" });
     }
   });
 
-  // Download report PDF
+  // Download report
   app.get("/api/reports/:id/download", async (req, res) => {
     try {
       const report = await storage.getReport(req.params.id);
       if (!report || !report.pdfPath) {
-        return res.status(404).json({ message: "Report PDF not found" });
+        return res.status(404).json({ message: "Report not found" });
       }
 
-      res.download(report.pdfPath);
+      // Set proper filename for download
+      const filename = `report-${report.id}-${report.audienceType}.html`;
+      res.download(report.pdfPath, filename);
     } catch (error) {
       console.error("Error downloading report:", error);
       res.status(500).json({ message: "Failed to download report" });
