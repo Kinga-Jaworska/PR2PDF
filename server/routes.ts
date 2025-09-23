@@ -242,6 +242,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Preview report PDF (inline)
+  app.get("/api/reports/:id/preview", async (req, res) => {
+    try {
+      const report = await storage.getReport(req.params.id);
+      if (!report || !report.pdfPath) {
+        return res.status(404).json({ message: "Report PDF not found" });
+      }
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline');
+      res.sendFile(report.pdfPath, { root: '.' });
+    } catch (error) {
+      console.error("Error previewing report:", error);
+      res.status(500).json({ message: "Failed to preview report" });
+    }
+  });
+
   // Download report PDF
   app.get("/api/reports/:id/download", async (req, res) => {
     try {

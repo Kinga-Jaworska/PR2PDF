@@ -63,6 +63,11 @@ export default function ReportsPage() {
     }
   };
 
+  const handlePreview = (reportId: string) => {
+    const previewUrl = `/api/reports/${reportId}/preview`;
+    window.open(previewUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-6 py-6 space-y-6">
@@ -154,6 +159,7 @@ export default function ReportsPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => handlePreview(report.id)}
                       data-testid={`button-preview-${report.id}`}
                     >
                       <Eye className="h-4 w-4 mr-2" />
