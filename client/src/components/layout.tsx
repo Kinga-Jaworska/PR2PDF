@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, GitPullRequest, BarChart3, Database, FileText, Settings } from "lucide-react";
+import { Home, GitPullRequest, BarChart3, Database, FileText, Settings, FileBarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface LayoutProps {
@@ -27,6 +27,12 @@ export default function Layout({ children }: LayoutProps) {
       label: "Report Templates", 
       icon: FileText,
       testId: "nav-templates"
+    },
+    {
+      path: "/reports",
+      label: "Generated Reports", 
+      icon: FileBarChart,
+      testId: "nav-reports"
     },
     {
       path: "/pull-requests",

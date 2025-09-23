@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import Sidebar from "@/components/sidebar";
 import StatsCards from "@/components/stats-cards";
 import RecentPullRequests from "@/components/recent-pull-requests";
 import QuickActions from "@/components/quick-actions";
@@ -69,54 +68,41 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-background">
-      <Sidebar 
-        repositories={repositories || []}
-        isLoading={reposLoading}
-        onAddRepository={() => setIsAddRepoModalOpen(true)}
-      />
-      
-      <main className="flex-1 overflow-auto">
-        {/* Header */}
-        <header className="bg-card border-b border-border px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <nav className="flex items-center space-x-2 text-sm text-muted-foreground mb-1">
-                <span>Dashboard</span>
-                <span>/</span>
-                <span className="text-foreground font-medium">Overview</span>
-              </nav>
-              <h1 className="text-2xl font-bold text-foreground">Repository Analysis Dashboard</h1>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="secondary" 
-                onClick={handleSyncAll}
-                disabled={reposLoading}
-                data-testid="button-sync-all"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Sync All
-              </Button>
-              <Button data-testid="button-generate-report">
-                <FileText className="mr-2 h-4 w-4" />
-                Generate Report
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <div className="p-6 space-y-6">
-          <StatsCards statistics={statistics} isLoading={statsLoading} />
-          <RecentPullRequests pullRequests={pullRequests || []} isLoading={prsLoading} />
-          <QuickActions 
-            repositories={repositories || []} 
-            insights={insights || []}
-            isInsightsLoading={insightsLoading}
-          />
+    <div className="container mx-auto px-6 py-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Repository Analysis Dashboard</h1>
+          <p className="text-muted-foreground">Overview of your connected repositories and generated reports</p>
         </div>
-      </main>
+        <div className="flex items-center space-x-3">
+          <Button 
+            variant="secondary" 
+            onClick={handleSyncAll}
+            disabled={reposLoading}
+            data-testid="button-sync-all"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Sync All
+          </Button>
+          <Button 
+            onClick={() => setIsAddRepoModalOpen(true)}
+            data-testid="button-add-repository"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Add Repository
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <StatsCards statistics={statistics} isLoading={statsLoading} />
+      <RecentPullRequests pullRequests={pullRequests || []} isLoading={prsLoading} />
+      <QuickActions 
+        repositories={repositories || []} 
+        insights={insights || []}
+        isInsightsLoading={insightsLoading}
+      />
 
       <AddRepositoryModal 
         isOpen={isAddRepoModalOpen}

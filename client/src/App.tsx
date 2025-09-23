@@ -7,6 +7,7 @@ import Layout from "@/components/layout";
 import Dashboard from "@/pages/dashboard";
 import RepositoriesPage from "@/pages/repositories";
 import TemplatesPage from "@/pages/templates";
+import ReportsPage from "@/pages/reports";
 import PullRequestsPage from "@/pages/pull-requests";
 import NotFound from "@/pages/not-found";
 
@@ -17,6 +18,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/repositories" component={RepositoriesPage} />
         <Route path="/templates" component={TemplatesPage} />
+        <Route path="/reports" component={ReportsPage} />
         <Route path="/pull-requests" component={PullRequestsPage} />
         <Route component={NotFound} />
       </Switch>

@@ -34,6 +34,7 @@ export interface IStorage {
 
   // Reports
   getReportsByPullRequest(pullRequestId: string): Promise<Report[]>;
+  getAllReports(): Promise<(Report & { pullRequest: PullRequest & { repository: Repository } })[]>;
   getReport(id: string): Promise<Report | undefined>;
   createReport(report: InsertReport): Promise<Report>;
   updateReport(id: string, updates: Partial<InsertReport>): Promise<Report | undefined>;
@@ -139,6 +140,27 @@ export class DatabaseStorage implements IStorage {
       .from(reports)
       .where(eq(reports.pullRequestId, pullRequestId))
       .orderBy(desc(reports.generatedAt));
+  }
+
+  async getAllReports(): Promise<(Report & { pullRequest: PullRequest & { repository: Repository } })[]> {
+    const result = await db
+      .select({
+        reports: reports,
+        pull_requests: pullRequests,
+        repositories: repositories
+      })
+      .from(reports)
+      .leftJoin(pullRequests, eq(reports.pullRequestId, pullRequests.id))
+      .leftJoin(repositories, eq(pullRequests.repositoryId, repositories.id))
+      .orderBy(desc(reports.generatedAt));
+
+    return result.map(row => ({
+      ...row.reports,
+      pullRequest: {
+        ...row.pull_requests!,
+        repository: row.repositories!
+      }
+    }));
   }
 
   async getReport(id: string): Promise<Report | undefined> {
