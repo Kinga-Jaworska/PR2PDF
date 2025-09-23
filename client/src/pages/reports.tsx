@@ -52,7 +52,25 @@ export default function ReportsPage() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
-        a.download = `report-${reportId}.html`;
+        
+        // Extract filename from Content-Disposition header or determine from content type
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `report-${reportId}.pdf`; // Default to PDF
+        
+        if (contentDisposition) {
+          const matches = contentDisposition.match(/filename="([^"]+)"/);
+          if (matches) {
+            filename = matches[1];
+          }
+        } else {
+          // Fallback based on content type
+          const contentType = response.headers.get('Content-Type');
+          if (contentType?.includes('text/html')) {
+            filename = `report-${reportId}.html`;
+          }
+        }
+        
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
