@@ -3,6 +3,7 @@ import {
   pullRequests, 
   reports, 
   insights,
+  reportTemplates,
   type Repository, 
   type InsertRepository,
   type PullRequest,
@@ -10,7 +11,9 @@ import {
   type Report,
   type InsertReport,
   type Insight,
-  type InsertInsight
+  type InsertInsight,
+  type ReportTemplate,
+  type InsertReportTemplate
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
@@ -44,6 +47,15 @@ export interface IStorage {
   getInsightsByRepository(repositoryId: string): Promise<Insight[]>;
   createInsight(insight: InsertInsight): Promise<Insight>;
   getRecentInsights(repositoryId?: string): Promise<Insight[]>;
+
+  // Report Templates
+  getReportTemplates(): Promise<ReportTemplate[]>;
+  getReportTemplatesByAudience(audienceType: string): Promise<ReportTemplate[]>;
+  getReportTemplate(id: string): Promise<ReportTemplate | undefined>;
+  createReportTemplate(template: InsertReportTemplate): Promise<ReportTemplate>;
+  updateReportTemplate(id: string, updates: Partial<InsertReportTemplate>): Promise<ReportTemplate | undefined>;
+  deleteReportTemplate(id: string): Promise<boolean>;
+  getDefaultTemplates(): Promise<ReportTemplate[]>;
 
   // Statistics
   getStatistics(): Promise<{
@@ -215,6 +227,50 @@ export class DatabaseStorage implements IStorage {
       .from(insights)
       .orderBy(desc(insights.createdAt))
       .limit(10);
+  }
+
+  async getReportTemplates(): Promise<ReportTemplate[]> {
+    return await db.select().from(reportTemplates).orderBy(desc(reportTemplates.createdAt));
+  }
+
+  async getReportTemplatesByAudience(audienceType: string): Promise<ReportTemplate[]> {
+    return await db
+      .select()
+      .from(reportTemplates)
+      .where(eq(reportTemplates.audienceType, audienceType))
+      .orderBy(desc(reportTemplates.createdAt));
+  }
+
+  async getReportTemplate(id: string): Promise<ReportTemplate | undefined> {
+    const [template] = await db.select().from(reportTemplates).where(eq(reportTemplates.id, id));
+    return template || undefined;
+  }
+
+  async createReportTemplate(template: InsertReportTemplate): Promise<ReportTemplate> {
+    const [created] = await db.insert(reportTemplates).values(template).returning();
+    return created;
+  }
+
+  async updateReportTemplate(id: string, updates: Partial<InsertReportTemplate>): Promise<ReportTemplate | undefined> {
+    const [updated] = await db
+      .update(reportTemplates)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(reportTemplates.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteReportTemplate(id: string): Promise<boolean> {
+    const result = await db.delete(reportTemplates).where(eq(reportTemplates.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async getDefaultTemplates(): Promise<ReportTemplate[]> {
+    return await db
+      .select()
+      .from(reportTemplates)
+      .where(eq(reportTemplates.isDefault, true))
+      .orderBy(reportTemplates.audienceType);
   }
 
   async getStatistics() {

@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { githubService } from "./services/github";
 import { geminiService } from "./services/gemini";
 import { pdfService } from "./services/pdf";
-import { insertRepositorySchema, insertReportSchema } from "@shared/schema";
+import { insertRepositorySchema, insertReportSchema, insertReportTemplateSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -197,7 +197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/pull-requests/:id/reports", async (req, res) => {
     try {
-      const { audienceType } = req.body;
+      const { audienceType, templateId } = req.body;
       
       if (!["pm", "qa", "client"].includes(audienceType)) {
         return res.status(400).json({ message: "Invalid audience type" });
@@ -213,6 +213,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Repository not found" });
       }
 
+      // Get template if specified
+      let template = undefined;
+      if (templateId) {
+        template = await storage.getReportTemplate(templateId);
+        if (!template) {
+          return res.status(404).json({ message: "Template not found" });
+        }
+        // Ensure template audience type matches request
+        if (template.audienceType !== audienceType) {
+          return res.status(400).json({ message: "Template audience type does not match request" });
+        }
+      }
+
       // Get PR details and changes from GitHub
       const prDetails = await githubService.getPullRequestDetails(
         repository.githubToken,
@@ -220,8 +233,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pullRequest.number
       );
 
-      // Generate content using Gemini AI
-      const content = await geminiService.generateReportContent(prDetails, audienceType);
+      // Generate content using Gemini AI with optional template
+      const content = await geminiService.generateReportContent(prDetails, audienceType, template);
 
       // Create report record
       const report = await storage.createReport({
@@ -369,6 +382,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error refreshing insights:", error);
       res.status(500).json({ message: "Failed to refresh insights" });
+    }
+  });
+
+  // Report Templates routes
+  app.get("/api/report-templates", async (req, res) => {
+    try {
+      const { audienceType } = req.query;
+      let templates;
+      
+      if (audienceType) {
+        templates = await storage.getReportTemplatesByAudience(audienceType as string);
+      } else {
+        templates = await storage.getReportTemplates();
+      }
+      
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching report templates:", error);
+      res.status(500).json({ message: "Failed to fetch report templates" });
+    }
+  });
+
+  app.get("/api/report-templates/defaults", async (req, res) => {
+    try {
+      const templates = await storage.getDefaultTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching default templates:", error);
+      res.status(500).json({ message: "Failed to fetch default templates" });
+    }
+  });
+
+  app.get("/api/report-templates/:id", async (req, res) => {
+    try {
+      const template = await storage.getReportTemplate(req.params.id);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      console.error("Error fetching report template:", error);
+      res.status(500).json({ message: "Failed to fetch report template" });
+    }
+  });
+
+  app.post("/api/report-templates", async (req, res) => {
+    try {
+      const validatedData = insertReportTemplateSchema.parse(req.body);
+      const template = await storage.createReportTemplate(validatedData);
+      res.status(201).json(template);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid template data", errors: error.errors });
+      }
+      console.error("Error creating report template:", error);
+      res.status(500).json({ message: "Failed to create report template" });
+    }
+  });
+
+  app.put("/api/report-templates/:id", async (req, res) => {
+    try {
+      const updateData = insertReportTemplateSchema.partial().parse(req.body);
+      const template = await storage.updateReportTemplate(req.params.id, updateData);
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid template data", errors: error.errors });
+      }
+      console.error("Error updating report template:", error);
+      res.status(500).json({ message: "Failed to update report template" });
+    }
+  });
+
+  app.delete("/api/report-templates/:id", async (req, res) => {
+    try {
+      const success = await storage.deleteReportTemplate(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting report template:", error);
+      res.status(500).json({ message: "Failed to delete report template" });
     }
   });
 

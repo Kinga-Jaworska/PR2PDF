@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import type { GitHubPRDetails } from "./github";
-import type { PullRequest } from "@shared/schema";
+import type { PullRequest, ReportTemplate } from "@shared/schema";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
@@ -26,9 +26,11 @@ interface InsightData {
 }
 
 class GeminiService {
-  async generateReportContent(prDetails: GitHubPRDetails, audienceType: string): Promise<ReportContent> {
+  async generateReportContent(prDetails: GitHubPRDetails, audienceType: string, template?: ReportTemplate): Promise<ReportContent> {
     try {
-      const systemPrompt = this.getSystemPromptForAudience(audienceType);
+      const systemPrompt = template 
+        ? this.getSystemPromptFromTemplate(template)
+        : this.getSystemPromptForAudience(audienceType);
       
       const prompt = `
 Analyze the following pull request and generate a comprehensive report:
@@ -188,6 +190,19 @@ Generate insights that will help the development team improve code quality and c
       console.error("Error generating insights:", error);
       throw new Error(`Failed to generate insights: ${error}`);
     }
+  }
+
+  private getSystemPromptFromTemplate(template: ReportTemplate): string {
+    // Extract system prompt from template content
+    if (template.templateContent && typeof template.templateContent === 'object') {
+      const content = template.templateContent as any;
+      if (content.systemPrompt) {
+        return content.systemPrompt;
+      }
+    }
+    
+    // Fallback to audience-based prompt if template doesn't have a system prompt
+    return this.getSystemPromptForAudience(template.audienceType);
   }
 
   private getSystemPromptForAudience(audienceType: string): string {
