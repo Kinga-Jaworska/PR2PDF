@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA Analysis of Road Sign Recognition and Testing Framework Integration</title>
+    <style>
+        body {
+            font-family: 'Arial', 'DejaVu Sans', 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            border-bottom: 3px solid #4F46E5;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #4F46E5;
+            margin: 0;
+            font-size: 28px;
+        }
+        .audience-badge {
+            background: #4F46E5;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .summary {
+            background: #F8FAFC;
+            padding: 20px;
+            border-left: 4px solid #4F46E5;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section h2 {
+            color: #1E293B;
+            border-bottom: 2px solid #E2E8F0;
+            padding-bottom: 5px;
+        }
+        .test-scenarios {
+            background: #FEF3C7;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #F59E0B;
+        }
+        .recommendations {
+            background: #ECFDF5;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #10B981;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #E2E8F0;
+            text-align: center;
+            color: #6B7280;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>QA Analysis of Road Sign Recognition and Testing Framework Integration</h1>
+        <span class="audience-badge">Report for Quality Assurance</span>
+    </div>
+
+    <div class="summary">
+        <h2>Executive Summary</h2>
+        <p>This pull request introduces a comprehensive testing suite, including unit, instrumented, and UI tests, while significantly refactoring the core road sign recognition application. Key functional changes include improved user feedback mechanisms (Text-to-Speech, vibration for prohibition signs), speed limit warnings, and a silent mode. From a Quality Assurance perspective, this requires a multi-faceted testing approach to validate the new features, verify the extensive refactoring, ensure the stability of the recognition pipeline, and confirm the reliability of the new automated tests.</p>
+    </div>
+
+    
+        <div class="section">
+            <h2>Testing Strategy Overview</h2>
+            <p>The testing strategy must be comprehensive due to the large-scale changes. It will combine automated and manual testing. The primary goals are to: 1) Leverage and validate the newly introduced Espresso UI tests and instrumented tests. 2) Perform extensive manual testing on the combinations of user-configurable options from the main screen. 3) Execute real-world scenario testing, either simulated or through actual driving, to assess performance, accuracy, and usability. 4) Conduct rigorous regression testing on the entire sign recognition and display pipeline, which has been heavily refactored.</p>
+            
+                <ul>
+                    <li>Leverage new automated tests for baseline functionality.</li><li>Focus manual testing on feature interactions and edge cases.</li><li>Prioritize real-world performance and user experience (e.g., battery life, detection accuracy).</li><li>Implement a thorough regression suite to catch issues from refactoring.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Functional Testing Requirements</h2>
+            <p>Functional testing will focus on validating that all features work as described in the README and as implemented in the code.</p>
+            
+                <ul>
+                    <li>Verify all combinations of the main screen switches: Text/Image Info, Speech Info, Vibration, Speed Measurement, and Silent Mode.</li><li>Test the sign recognition model with a variety of signs under different conditions (lighting, angle, partial occlusion, distance).</li><li>Validate the Text-to-Speech (TTS) feature, including the handling of missing language packs and the accuracy of spoken sign names.</li><li>Confirm the speed measurement feature's accuracy against a reliable GPS source and ensure the UI updates correctly.</li><li>Test the speed limit warning functionality, specifically for the 'teren zabudowany' sign when speed exceeds 50 km/h.</li><li>Verify the Silent Mode correctly mutes and unmutes notification, alarm, and ring streams, and handles pre-existing silent states.</li><li>Check all application dialogs (e.g., errors for model loading, missing GPS, missing TTS pack) for correctness and clarity.</li><li>Ensure the app gracefully handles permission denials for Camera and Location.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Non-Functional Testing Considerations</h2>
+            <p>Beyond core functionality, the application's performance and resource consumption are critical for a good user experience, especially for a real-time processing app.</p>
+            
+                <ul>
+                    <li>Performance Testing: Monitor CPU usage, memory consumption, and battery drain during prolonged use (e.g., a 30-minute session). Assess the impact of recognition on camera FPS.</li><li>Usability Testing: Evaluate the clarity of audio and visual alerts. Ensure they are helpful and not overly distracting to a driver. Check UI responsiveness on various devices.</li><li>Security Testing: Verify that all requested permissions (Camera, Location, Notification Policy) are necessary and that the app provides clear justifications. Ensure the app is not vulnerable to issues related to mock location usage in production.</li><li>Compatibility Testing: Test on a range of Android devices with varying screen sizes, OS versions (API 28+), and hardware capabilities (e.g., with/without a powerful GPU).</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Integration Testing Requirements</h2>
+            <p>Testing the application's interaction with external services and the underlying operating system is crucial.</p>
+            
+                <ul>
+                    <li>Firebase Integration: Verify the app can successfully download the TensorFlow Lite model and labels file from Firebase Storage. Test the app's behavior with slow or no internet connection. Confirm it correctly fetches sign image URLs and types from the Realtime Database.</li><li>Operating System Integration: Test how Silent Mode interacts with incoming phone calls and notifications from other apps. Validate app behavior during lifecycle events (backgrounding, foregrounding, rotation if applicable).</li><li>Hardware Integration: Test the vibration feature on devices with different haptic feedback motors. Verify camera and GPS hardware are initialized and released correctly.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Test Environment Setup Needs</h2>
+            <p>A specific setup is required to effectively test all aspects of this application.</p>
+            
+                <ul>
+                    <li>Physical Android devices (minimum 2) with cameras and GPS, running different Android OS versions (e.g., Android 9, Android 11).</li><li>Access to a test Firebase project to manage the ML model, labels file, and sign database without affecting production.</li><li>Tools for mock location services to reliably simulate different speeds and test the speed limit features without actual driving.</li><li>A controlled environment with printed road signs to test recognition accuracy under repeatable conditions.</li><li>A device with the Polish TTS language pack uninstalled to test the corresponding error-handling flow.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Risk-Based Testing Prioritization</h2>
+            <p>Given the scope of changes, testing efforts should be prioritized based on risk and user impact.</p>
+            
+                <ul>
+                    <li>High Priority: Core sign recognition pipeline (refactored `objectDetector`), Silent Mode functionality (OS interaction risk), and speed limit violation alerts (safety feature).</li><li>Medium Priority: Combinations of all user-selectable options, TTS functionality and error handling, Firebase model downloading, and app performance/battery usage.</li><li>Low Priority: Static UI elements, layout changes on the main screen, and README content accuracy.</li>
+                </ul>
+            
+        </div>
+    
+
+    
+        <div class="test-scenarios">
+            <h2>■ Recommended Test Scenarios</h2>
+            <ul>
+                <li>Scenario: All Features Enabled. Enable all switches. Verify that when a 'Zakaz wjazdu' (No Entry) sign is shown, the app displays its name/image, speaks the name, triggers a vibration, and continues to show vehicle speed.</li><li>Scenario: Graceful Degradation (No Internet). Launch the app for the first time with network connectivity disabled. Verify the app displays an informative error regarding the inability to download the model/labels and does not crash.</li><li>Scenario: Permission Denial (Location). Enable the 'Speed Measurement' switch but deny the location permission when prompted. Verify the app proceeds to the detector screen but shows an error that speed cannot be measured.</li><li>Scenario: OS Integration (Silent Mode). With the app's Silent Mode enabled, receive an incoming phone call. Verify the device does not ring or vibrate for the call.</li><li>Scenario: Edge Case (Speed Limit). Using a mock location provider, simulate driving while a 'Teren zabudowany' (Built-up Area) sign is displayed. Increase speed from 49 km/h to 51 km/h. Confirm the over-speed limit warning is triggered.</li><li>Scenario: TTS Language Pack Missing. On a device without the Polish TTS pack, enable the 'Speech Info' switch. Verify the app presents a dialog prompting the user to install the language pack with a shortcut to settings.</li><li>Scenario: Recognition in Adverse Conditions. Test sign recognition in a low-light environment to assess model performance and ensure the camera feed remains usable.</li><li>Scenario: App Lifecycle. While the detector is active, send the app to the background and then bring it back to the foreground. Confirm that the camera view resumes and detection continues without any crashes.</li><li>Scenario: Input Validation. On the main screen, uncheck the 'Text/Image', 'Speech', and 'Vibration' options. Attempt to start the detector. Verify a toast message appears preventing launch and the detector activity does not start.</li><li>Scenario: Performance Under Load. Run the detector continuously for 20 minutes. Monitor for excessive battery drain (e.g., >15% drop), device overheating, and any degradation in UI responsiveness.</li><li>Scenario: Vibration Logic. With the vibration switch enabled, show the camera a non-prohibition sign (e.g., a warning sign like 'Uwaga Dzieci'). Verify that no vibration occurs.</li><li>Scenario: UI State Persistence. Toggle the camera background view in the DetectorActivity, then navigate back to the main screen and re-enter the detector. Verify the camera view preference is not persisted and resets to the default.</li><li>Scenario: Two-Sign Display. Show the camera sign A, then quickly show sign B. Verify that sign B appears as the primary detection and sign A moves to the secondary (previous detection) display slot.</li>
+            </ul>
+        </div>
+    
+
+    
+        <div class="recommendations">
+            <h2>★ Recommendations</h2>
+            <ul>
+                <li>Execute all newly created automated tests (`ActivityUITest`, `DetectorTest`, `UnitTest`) as part of the CI/CD pipeline.</li><li>Perform a full manual regression test cycle focusing on the high-priority risk areas before merging.</li><li>Conduct at least one real-world driving test to evaluate the end-to-end user experience.</li><li>Add logging around the `adjustAudio` function to better debug silent mode issues on different devices.</li>
+            </ul>
+        </div>
+    
+
+    <div class="footer">
+        <p>Generated by PR Insight • 9/24/2025</p>
+    </div>
+</body>
+</html>

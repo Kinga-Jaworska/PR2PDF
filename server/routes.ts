@@ -320,23 +320,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reports/:id/preview", async (req, res) => {
     try {
       const report = await storage.getReport(req.params.id);
-      if (!report || !report.pdfPath) {
+      if (!report || !report.content) {
         return res.status(404).json({ message: "Report not found" });
       }
 
-      // Convert to HTML path for preview
-      const htmlPath = report.pdfPath.endsWith('.pdf') ? report.pdfPath.replace('.pdf', '.html') : report.pdfPath;
-      
-      // Check if HTML file exists
-      if (!fs.existsSync(htmlPath)) {
-        return res.status(404).json({ message: "Preview file not found" });
+      // Regenerate HTML with emoji replacements from stored content
+      if (typeof report.content === 'object' && 'title' in report.content) {
+        try {
+          // Use PDF service to generate HTML with emoji replacements
+          const html = await pdfService.generateHTML(report.id, report.content as any, report.audienceType);
+          res.setHeader('Content-Type', 'text/html');
+          return res.send(html);
+        } catch (htmlError) {
+          console.error("Error regenerating HTML for preview:", htmlError);
+          // Fall back to original file-based approach if regeneration fails
+        }
       }
 
-      res.setHeader('Content-Type', 'text/html');
-      res.sendFile(htmlPath, { 
-        root: '/',
-        // Handle absolute paths by using root: '/'
-      });
+      // Fallback: serve existing HTML file if regeneration fails
+      const htmlPath = report.pdfPath ? 
+        (report.pdfPath.endsWith('.pdf') ? report.pdfPath.replace('.pdf', '.html') : report.pdfPath) :
+        null;
+      
+      if (htmlPath && fs.existsSync(htmlPath)) {
+        res.setHeader('Content-Type', 'text/html');
+        return res.sendFile(htmlPath, { root: '/' });
+      }
+
+      return res.status(404).json({ message: "Preview file not found" });
     } catch (error) {
       console.error("Error previewing report:", error);
       res.status(500).json({ message: "Failed to preview report" });

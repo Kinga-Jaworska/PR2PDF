@@ -64,12 +64,46 @@ class PDFService {
     }
   }
 
+  async generateHTML(reportId: string, content: ReportContent, audienceType: string): Promise<string> {
+    return this.generateHTMLReport(content, audienceType);
+  }
+
   private generateHTMLReport(content: ReportContent, audienceType: string): string {
     const audienceTypeDisplay = {
       pm: 'Project Manager',
       qa: 'Quality Assurance',
       client: 'Client'
     }[audienceType] || audienceType;
+
+    // Function to replace emojis with readable symbols in text
+    const replaceEmojis = (text: string): string => {
+      return text
+        .replace(/📋/g, '■')  // clipboard emoji -> solid square
+        .replace(/💡/g, '★')  // light bulb emoji -> star
+        .replace(/📊/g, '▲')  // chart emoji -> triangle
+        .replace(/⚠️/g, '⚠')  // warning emoji -> warning symbol
+        .replace(/✅/g, '✓')  // check mark emoji -> check mark
+        .replace(/❌/g, '✗')  // cross mark emoji -> x mark
+        .replace(/🔍/g, '○')  // magnifying glass -> circle
+        .replace(/⭐/g, '★')  // star emoji -> star symbol
+        .replace(/🚨/g, '!')  // siren emoji -> exclamation
+        .replace(/🎯/g, '→'); // target emoji -> arrow
+    };
+
+    // Clean content by replacing emojis
+    const cleanContent = {
+      ...content,
+      title: replaceEmojis(content.title),
+      summary: replaceEmojis(content.summary),
+      sections: content.sections.map(section => ({
+        ...section,
+        title: replaceEmojis(section.title),
+        content: replaceEmojis(section.content),
+        items: section.items?.map(item => replaceEmojis(item))
+      })),
+      recommendations: content.recommendations?.map(rec => replaceEmojis(rec)),
+      testScenarios: content.testScenarios?.map(scenario => replaceEmojis(scenario))
+    };
 
     return `
 <!DOCTYPE html>
@@ -80,7 +114,7 @@ class PDFService {
     <title>${content.title}</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Arial', 'DejaVu Sans', 'Segoe UI', sans-serif;
             line-height: 1.6;
             color: #333;
             max-width: 800px;
@@ -150,16 +184,16 @@ class PDFService {
 </head>
 <body>
     <div class="header">
-        <h1>${content.title}</h1>
+        <h1>${cleanContent.title}</h1>
         <span class="audience-badge">Report for ${audienceTypeDisplay}</span>
     </div>
 
     <div class="summary">
         <h2>Executive Summary</h2>
-        <p>${content.summary}</p>
+        <p>${cleanContent.summary}</p>
     </div>
 
-    ${content.sections.map(section => `
+    ${cleanContent.sections.map(section => `
         <div class="section">
             <h2>${section.title}</h2>
             <p>${section.content}</p>
@@ -171,20 +205,20 @@ class PDFService {
         </div>
     `).join('')}
 
-    ${content.testScenarios ? `
+    ${cleanContent.testScenarios ? `
         <div class="test-scenarios">
-            <h2>📋 Recommended Test Scenarios</h2>
+            <h2>■ Recommended Test Scenarios</h2>
             <ul>
-                ${content.testScenarios.map(scenario => `<li>${scenario}</li>`).join('')}
+                ${cleanContent.testScenarios.map(scenario => `<li>${scenario}</li>`).join('')}
             </ul>
         </div>
     ` : ''}
 
-    ${content.recommendations ? `
+    ${cleanContent.recommendations ? `
         <div class="recommendations">
-            <h2>💡 Recommendations</h2>
+            <h2>★ Recommendations</h2>
             <ul>
-                ${content.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                ${cleanContent.recommendations.map(rec => `<li>${rec}</li>`).join('')}
             </ul>
         </div>
     ` : ''}
