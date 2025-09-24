@@ -138,7 +138,25 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `report-${reportId}.html`;
+        
+        // Extract filename from Content-Disposition header or determine from content type
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `report-${reportId}.pdf`; // Default to PDF
+        
+        if (contentDisposition) {
+          const matches = contentDisposition.match(/filename="([^"]+)"/);
+          if (matches) {
+            filename = matches[1];
+          }
+        } else {
+          // Fallback based on content type
+          const contentType = response.headers.get('Content-Type');
+          if (contentType?.includes('text/html')) {
+            filename = `report-${reportId}.html`;
+          }
+        }
+        
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
@@ -154,6 +172,11 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
         variant: "destructive",
       });
     }
+  };
+
+  const handleViewReport = (reportId: string) => {
+    const previewUrl = `/api/reports/${reportId}/preview`;
+    window.open(previewUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
   };
 
   const uniqueRepos = Array.from(new Set(pullRequests.map(pr => pr.repository.name)));
@@ -269,6 +292,7 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
                           <Button 
                             size="sm" 
                             variant="ghost"
+                            onClick={() => pr.reports?.[0] && handleViewReport(pr.reports[0].id)}
                             data-testid={`button-view-report-${pr.number}`}
                           >
                             <Eye className="mr-1 h-3 w-3" />
