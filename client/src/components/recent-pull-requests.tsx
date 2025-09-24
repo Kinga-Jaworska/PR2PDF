@@ -261,7 +261,30 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
                       {getStatusBadge(pr.status, pr.reviewStatus)}
                     </td>
                     <td className="px-6 py-4">
-                      {reportStatus || (
+                      {reportStatus || <span className="text-sm text-muted-foreground">No report yet</span>}
+                    </td>
+                    <td className="px-6 py-4">
+                      {reportStatus ? (
+                        <div className="flex items-center space-x-2">
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            data-testid={`button-view-report-${pr.number}`}
+                          >
+                            <Eye className="mr-1 h-3 w-3" />
+                            View
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => pr.reports?.[0] && handleDownloadReport(pr.reports[0].id)}
+                            data-testid={`button-download-report-${pr.number}`}
+                          >
+                            <Download className="mr-1 h-3 w-3" />
+                            Download
+                          </Button>
+                        </div>
+                      ) : (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button 
@@ -302,31 +325,6 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      {reportStatus ? (
-                        <div className="flex items-center space-x-2">
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            data-testid={`button-view-report-${pr.number}`}
-                          >
-                            <Eye className="mr-1 h-3 w-3" />
-                            View
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="ghost"
-                            onClick={() => pr.reports?.[0] && handleDownloadReport(pr.reports[0].id)}
-                            data-testid={`button-download-report-${pr.number}`}
-                          >
-                            <Download className="mr-1 h-3 w-3" />
-                            Download
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">No report yet</span>
                       )}
                     </td>
                   </tr>
