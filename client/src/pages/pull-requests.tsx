@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { GitBranch, Clock, User, FileText, Download, RefreshCw, Users, TestTube, UserCheck, AlertTriangle, AlertCircle, AlertOctagon, CheckCircle } from "lucide-react";
+import { GitBranch, Clock, User, FileText, Download, RefreshCw, Users, TestTube, UserCheck, AlertTriangle, AlertCircle, AlertOctagon, CheckCircle, ChevronDown, Eye } from "lucide-react";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
@@ -28,6 +29,7 @@ interface PullRequest {
     name: string;
     fullName: string;
   };
+  reports?: any[];
 }
 
 interface Template {
@@ -44,7 +46,7 @@ export default function PullRequestsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [repositoryFilter, setRepositoryFilter] = useState<string>("all");
-  const [selectedTemplate, setSelectedTemplate] = useState<{[key: string]: string}>({});
+  // Remove selectedTemplate state as we no longer need it
   const { toast } = useToast();
 
   // Default templates
@@ -96,28 +98,18 @@ export default function PullRequestsPage() {
     return matchesSearch && matchesStatus && matchesRepository;
   });
 
-  const handleGenerateReport = async (pullRequestId: string, templateId: string) => {
+  const handleGenerateReport = async (pullRequestId: string, audienceType: string) => {
     try {
-      const template = defaultTemplates.find(t => t.id === templateId);
-      if (!template) {
-        toast({
-          title: "Template not found",
-          description: "Please select a valid template.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       await apiRequest("POST", `/api/pull-requests/${pullRequestId}/reports`, {
-        audienceType: template.type,
+        audienceType,
       });
       toast({
         title: "Report generated",
-        description: `The ${template.name} has been generated successfully.`,
+        description: `The ${audienceType.toUpperCase()} report has been generated successfully.`,
       });
       
-      // Clear the selection after successful generation
-      setSelectedTemplate(prev => ({...prev, [pullRequestId]: ""}));
+      // Refetch to update the UI with new reports
+      refetch();
     } catch (error) {
       toast({
         title: "Failed to generate report",
@@ -125,6 +117,36 @@ export default function PullRequestsPage() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleGenerateAllReports = async (pullRequestId: string) => {
+    try {
+      await Promise.all([
+        apiRequest("POST", `/api/pull-requests/${pullRequestId}/reports`, { audienceType: "pm" }),
+        apiRequest("POST", `/api/pull-requests/${pullRequestId}/reports`, { audienceType: "qa" }),
+        apiRequest("POST", `/api/pull-requests/${pullRequestId}/reports`, { audienceType: "client" })
+      ]);
+      toast({
+        title: "All reports generated",
+        description: "PM, QA, and Client reports have been generated successfully.",
+      });
+      
+      // Refetch to update the UI with new reports
+      refetch();
+    } catch (error) {
+      toast({
+        title: "Failed to generate reports",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getReportStatus = (pr: PullRequest) => {
+    if (!pr.reports || pr.reports.length === 0) {
+      return "no-reports";
+    }
+    return "has-reports";
   };
 
   const getTemplateIcon = (type: string) => {
@@ -345,31 +367,61 @@ export default function PullRequestsPage() {
 
                     {/* Actions */}
                     <div className="flex gap-2 items-center">
-                      <Select 
-                        value={selectedTemplate[pr.id] || ""} 
-                        onValueChange={(templateId) => setSelectedTemplate(prev => ({...prev, [pr.id]: templateId}))}
-                      >
-                        <SelectTrigger className="w-48" data-testid={`select-template-${pr.number}`}>
-                          <SelectValue placeholder="Select Template" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {defaultTemplates.map((template) => (
-                            <SelectItem key={template.id} value={template.id}>
-                              <div className="flex items-center gap-2">
-                                {getTemplateIcon(template.type)}
-                                <span>{template.name}</span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button 
-                        onClick={() => selectedTemplate[pr.id] && handleGenerateReport(pr.id, selectedTemplate[pr.id])}
-                        disabled={!selectedTemplate[pr.id]}
-                        data-testid={`button-create-report-${pr.number}`}
-                      >
-                        Create Report
-                      </Button>
+                      {getReportStatus(pr) === "has-reports" ? (
+                        <div className="flex items-center gap-2">
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                            Generated
+                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(`/reports`, '_blank')}
+                            data-testid={`button-view-reports-${pr.number}`}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Reports
+                          </Button>
+                        </div>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button data-testid={`button-generate-${pr.number}`}>
+                              Generate Report
+                              <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleGenerateReport(pr.id, "pm")}
+                              data-testid={`menu-generate-pm-${pr.number}`}
+                            >
+                              <Users className="mr-2 h-4 w-4" />
+                              PM Report
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleGenerateReport(pr.id, "qa")}
+                              data-testid={`menu-generate-qa-${pr.number}`}
+                            >
+                              <TestTube className="mr-2 h-4 w-4" />
+                              QA Report
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleGenerateReport(pr.id, "client")}
+                              data-testid={`menu-generate-client-${pr.number}`}
+                            >
+                              <UserCheck className="mr-2 h-4 w-4" />
+                              Client Report
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleGenerateAllReports(pr.id)}
+                              data-testid={`menu-generate-all-${pr.number}`}
+                            >
+                              <FileText className="mr-2 h-4 w-4" />
+                              Generate All Reports
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                   </div>
                 </CardContent>
