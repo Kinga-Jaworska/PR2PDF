@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Eye, Download, Bot, Clock, Check, X, AlertTriangle, AlertCircle, AlertOctagon, CheckCircle } from "lucide-react";
+import { Eye, Download, Bot, Clock, Check, X, AlertTriangle, AlertCircle, AlertOctagon, CheckCircle, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -93,16 +94,25 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
     }
   };
 
-  const handleGenerateReport = async (prId: string, audienceType: string = "pm") => {
+  const handleGenerateReport = async (prId: string, audienceTypes: string | string[]) => {
     setGeneratingReports(prev => new Set(prev).add(prId));
     
     try {
-      await apiRequest("POST", `/api/pull-requests/${prId}/reports`, { audienceType });
+      const typesToGenerate = Array.isArray(audienceTypes) ? audienceTypes : [audienceTypes];
+      
+      // Generate reports for all requested audience types
+      for (const audienceType of typesToGenerate) {
+        await apiRequest("POST", `/api/pull-requests/${prId}/reports`, { audienceType });
+      }
+      
       await queryClient.invalidateQueries({ queryKey: ["/api/pull-requests"] });
       
+      const reportCount = typesToGenerate.length;
       toast({
-        title: "Report generated",
-        description: "The report has been successfully generated.",
+        title: reportCount > 1 ? "Reports generated" : "Report generated",
+        description: reportCount > 1 
+          ? `${reportCount} reports have been successfully generated.`
+          : "The report has been successfully generated.",
       });
     } catch (error) {
       console.error("Error generating report:", error);
@@ -252,16 +262,46 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
                     </td>
                     <td className="px-6 py-4">
                       {reportStatus || (
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleGenerateReport(pr.id)}
-                          disabled={isGenerating}
-                          data-testid={`button-generate-report-${pr.number}`}
-                        >
-                          <Bot className="mr-1 h-3 w-3" />
-                          {isGenerating ? "Generating..." : "Generate"}
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              disabled={isGenerating}
+                              data-testid={`button-generate-report-${pr.number}`}
+                            >
+                              <Bot className="mr-1 h-3 w-3" />
+                              {isGenerating ? "Generating..." : "Generate"}
+                              <ChevronDown className="ml-1 h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem 
+                              onClick={() => handleGenerateReport(pr.id, "pm")}
+                              data-testid={`menu-generate-pm-${pr.number}`}
+                            >
+                              Generate PM Report
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleGenerateReport(pr.id, "qa")}
+                              data-testid={`menu-generate-qa-${pr.number}`}
+                            >
+                              Generate QA Report
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleGenerateReport(pr.id, "client")}
+                              data-testid={`menu-generate-client-${pr.number}`}
+                            >
+                              Generate Client Report
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleGenerateReport(pr.id, ["pm", "qa", "client"])}
+                              data-testid={`menu-generate-all-${pr.number}`}
+                            >
+                              Generate All Reports
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </td>
                     <td className="px-6 py-4">

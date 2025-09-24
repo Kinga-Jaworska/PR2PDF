@@ -1,0 +1,159 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quality Assurance Report for Pull Request: Auth + CRUD + views</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            border-bottom: 3px solid #4F46E5;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #4F46E5;
+            margin: 0;
+            font-size: 28px;
+        }
+        .audience-badge {
+            background: #4F46E5;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .summary {
+            background: #F8FAFC;
+            padding: 20px;
+            border-left: 4px solid #4F46E5;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section h2 {
+            color: #1E293B;
+            border-bottom: 2px solid #E2E8F0;
+            padding-bottom: 5px;
+        }
+        .test-scenarios {
+            background: #FEF3C7;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #F59E0B;
+        }
+        .recommendations {
+            background: #ECFDF5;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #10B981;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #E2E8F0;
+            text-align: center;
+            color: #6B7280;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Quality Assurance Report for Pull Request: Auth + CRUD + views</h1>
+        <span class="audience-badge">Report for Quality Assurance</span>
+    </div>
+
+    <div class="summary">
+        <h2>Executive Summary</h2>
+        <p>This pull request introduces fundamental application features, including Google OAuth authentication, full CRUD (Create, Read, Update, Delete) functionality for tasks, and the addition of time slots. The scope is substantial, involving 30 file changes, significant dependency additions (NextAuth, React Query, Redux, Zustand), and the creation of numerous new UI components and pages. From a QA perspective, this is a high-risk change set requiring comprehensive testing across functional, security, and integration layers to ensure stability and correctness.</p>
+    </div>
+
+    
+        <div class="section">
+            <h2>Testing Strategy Overview</h2>
+            <p>A multi-layered testing strategy is required. The focus should be on end-to-end (E2E) testing for the authentication and CRUD user flows. Integration testing is critical to verify the interaction between the frontend components, state management (React Query, Zustand), and the backend API. Given the addition of many new dependencies, a thorough regression test of any existing functionality is mandatory. All testing should be conducted across major browsers (Chrome, Firefox, Safari).</p>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Functional Testing Requirements</h2>
+            <p>Functional testing must validate the core features introduced in this pull request.</p>
+            
+                <ul>
+                    <li>Authentication Flow: Verify the entire Google OAuth login process, including success, failure, session management, and redirection logic. Test access control for protected routes.</li><li>Task Management (CRUD): Validate the creation of new tasks via the 'add' page. Test the editing functionality in the 'Edit' modal. Confirm the successful deletion of tasks. Ensure the task list view reflects all changes accurately and in real-time.</li><li>Time Slot Management: Test the ability to add a new time slot to an existing task. Verify data persistence and correct display after addition.</li><li>Form Validation: Rigorously test the validation logic on the Task and Time Slot forms. This includes required fields (e.g., 'project_name'), data formats (e.g., duration '1h 1m'), and boundary conditions (e.g., duration exceeding 24 hours).</li><li>UI/UX: Confirm all new UI components render correctly. Validate that modals for editing and adding slots open and close as expected. Ensure interactive elements like buttons are responsive and provide user feedback (e.g., toast notifications on success/error).</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Non-Functional Testing Considerations</h2>
+            <p>Beyond core functionality, several non-functional aspects must be assessed.</p>
+            
+                <ul>
+                    <li>Security Testing: The authentication flow is the highest priority. Verify that client-side secrets are not exposed. Ensure the access token is handled securely (the code includes a TODO to move from localStorage to cookies, which is a critical security enhancement). Test for unauthorized access to API endpoints by attempting to perform CRUD operations without a valid session.</li><li>Performance Testing: Assess the initial page load time, especially on the main page which fetches the task list. Monitor the performance of data mutations (add/edit/delete) to ensure the UI remains responsive and updates promptly without noticeable lag.</li><li>Usability Testing: Evaluate the user flow for creating and managing tasks. Is the process intuitive? Are form error messages clear and helpful? Is the UI consistent across different pages and components?</li><li>Integration Testing: Verify the seamless flow of data between the frontend and the backend API (`BE_URL`). Ensure that API requests are correctly formatted and that responses (both success and error) are handled gracefully by the frontend, including updating the React Query cache.</li><li>Regression Testing: Due to the large number of new dependencies and core architectural changes (`_app.tsx`, `next.config.js`), any pre-existing functionality must be fully re-tested to ensure no regressions have been introduced.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Test Environment Setup Needs</h2>
+            <p>A specific environment is required for effective testing.</p>
+            
+                <ul>
+                    <li>Backend API: A stable, deployed backend instance matching the `BE_URL` environment variable must be available and populated with test data.</li><li>OAuth Credentials: Valid `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` must be configured in a local `.env` file for the Google Login functionality to work.</li><li>Database State: Access to a test database is needed to set up specific preconditions (e.g., a user with no tasks, a user with many tasks) and to verify the results of CRUD operations directly.</li><li>Clean Browser Sessions: Testers will need to frequently clear cookies and local storage to test the authentication flow from a 'new user' perspective.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Risk-Based Testing Prioritization</h2>
+            <p>Given the scale of the changes, testing efforts should be prioritized based on risk and impact.</p>
+            
+                <ul>
+                    <li>P0 (Critical): Authentication and Authorization. A failure here compromises the entire application. This includes Google login, session handling, and route protection.</li><li>P1 (High): Core Task CRUD functionality. The ability to create, edit, and view tasks is the primary purpose of the application. Form validation for tasks falls into this category.</li><li>P2 (Medium): Time slot addition, UI responsiveness, and toast notifications. These are important features but are secondary to the core task management and auth flows.</li><li>P3 (Low): Minor styling inconsistencies, SCSS code structure, and non-critical UI elements.</li>
+                </ul>
+            
+        </div>
+    
+
+    
+        <div class="test-scenarios">
+            <h2>📋 Recommended Test Scenarios</h2>
+            <ul>
+                <li>Verify that a new user is successfully redirected to the '/start' page after a successful Google Login.</li><li>Verify that attempting to access a protected page like '/start' without being authenticated redirects the user to the login page.</li><li>Verify that an appropriate error message is displayed to the user if the Google Login process fails.</li><li>Verify that a user can create a new task by filling all required fields in the task form and submitting it.</li><li>Verify that the task form displays a validation error if the 'Project Name' field is left blank upon submission.</li><li>Verify that the task form displays a validation error for the 'Duration' field if the input does not match the 'Xh Ym' format (e.g., '2 hours').</li><li>Verify that the task form displays a validation error if the 'Duration' field value translates to more than 24 hours (e.g., '25h').</li><li>Verify that after creating a new task, the user is redirected and the new task appears correctly in the task list on the '/start' page.</li><li>Verify that clicking the 'Edit' button on a task opens a modal pre-filled with the correct task data.</li><li>Verify that submitting the 'Edit' modal with updated information successfully updates the task in the list view.</li><li>Verify that clicking the 'Delete' icon for a task removes it from the task list after confirmation.</li><li>Verify that adding a new time slot to a task correctly updates the task details in the UI.</li><li>Verify that the user's session persists after a page refresh, keeping them logged in.</li><li>Verify that the 'close' button on the 'Add Slot' and 'Edit Task' modals successfully closes the modal without saving any changes.</li>
+            </ul>
+        </div>
+    
+
+    
+        <div class="recommendations">
+            <h2>💡 Recommendations</h2>
+            <ul>
+                <li>Prioritize the TODO item to move the access token and auth data from `localStorage` to secure, HTTP-only cookies to mitigate XSS risks.</li><li>Implement comprehensive UI feedback for API errors. The code notes a 'TODO: handling errors', and robust, user-friendly error messages should be implemented for all mutation failures.</li><li>Clarify the state management strategy. The project includes `Redux` and `Zustand` as dependencies. A clear guideline on when to use each library should be established to maintain consistency.</li><li>Add automated end-to-end tests using a framework like Cypress or Playwright for the critical authentication and task creation flows to prevent future regressions.</li>
+            </ul>
+        </div>
+    
+
+    <div class="footer">
+        <p>Generated by PR Insight • 9/24/2025</p>
+    </div>
+</body>
+</html>

@@ -226,12 +226,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Get PR details and changes from GitHub
-      const prDetails = await githubService.getPullRequestDetails(
-        repository.githubToken,
-        repository.fullName,
-        pullRequest.number
-      );
+      // Check if this is a demo repository
+      const isDemoRepo = repository.githubToken === "demo-token-not-real" || 
+                        repository.fullName.toLowerCase().includes("demo") ||
+                        repository.githubToken === "demo" || 
+                        repository.githubToken === "test";
+
+      let prDetails;
+      if (isDemoRepo) {
+        // Use mock data for demo repositories
+        prDetails = {
+          id: pullRequest.githubId || 12345,
+          number: pullRequest.number,
+          title: pullRequest.title,
+          user: {
+            login: pullRequest.authorName,
+            avatar_url: pullRequest.authorAvatar || "https://github.com/demo-user.png"
+          },
+          state: pullRequest.status,
+          created_at: pullRequest.createdAt?.toISOString() || new Date().toISOString(),
+          updated_at: pullRequest.updatedAt?.toISOString() || new Date().toISOString(),
+          merged_at: pullRequest.mergedAt?.toISOString() || null,
+          diff_url: `https://github.com/${repository.fullName}/pull/${pullRequest.number}.diff`,
+          review_comments: [],
+          changes: pullRequest.changes ? (typeof pullRequest.changes === 'string' ? JSON.parse(pullRequest.changes) : pullRequest.changes) : {
+            additions: 25,
+            deletions: 8,
+            changed_files: 3,
+            files: [
+              {
+                filename: "src/auth/login.js",
+                status: "modified",
+                additions: 15,
+                deletions: 3,
+                patch: "@@ -1,3 +1,10 @@\n+// Enhanced authentication system\n+const bcrypt = require('bcrypt');\n+\n export function validateLogin(username, password) {"
+              },
+              {
+                filename: "src/components/Dashboard.jsx",
+                status: "modified",
+                additions: 8,
+                deletions: 2,
+                patch: "@@ -15,7 +15,7 @@ function Dashboard() {\n-  const [isLoading, setLoading] = useState(true);\n+  const [isLoading, setLoading] = useState(false);"
+              },
+              {
+                filename: "tests/auth.test.js",
+                status: "added",
+                additions: 2,
+                deletions: 3,
+                patch: "@@ +1,12 @@\n+describe('Authentication', () => {\n+  test('should validate user credentials', () => {\n+    // Test implementation\n+  });\n+});"
+              }
+            ],
+            diff: `diff --git a/src/auth/login.js b/src/auth/login.js\nindex 1234567..abcdefg 100644\n--- a/src/auth/login.js\n+++ b/src/auth/login.js\n@@ -1,3 +1,10 @@\n+// Enhanced authentication system\n+const bcrypt = require('bcrypt');\n+\n export function validateLogin(username, password) {\n   // Authentication logic\n }`
+          }
+        };
+      } else {
+        // Use real GitHub API for non-demo repositories
+        const githubToken = process.env.GITHUB_TOKEN;
+        if (!githubToken) {
+          return res.status(500).json({ message: "GitHub token not configured" });
+        }
+        
+        prDetails = await githubService.getPullRequestDetails(
+          githubToken,
+          repository.fullName,
+          pullRequest.number
+        );
+      }
 
       // Generate content using Gemini AI with optional template
       const content = await geminiService.generateReportContent(prDetails, audienceType, template);

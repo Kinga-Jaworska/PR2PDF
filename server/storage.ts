@@ -33,7 +33,7 @@ export interface IStorage {
   getPullRequestByGithubId(githubId: number): Promise<PullRequest | undefined>;
   createPullRequest(pullRequest: InsertPullRequest): Promise<PullRequest>;
   updatePullRequest(id: string, updates: Partial<InsertPullRequest>): Promise<PullRequest | undefined>;
-  getRecentPullRequests(limit?: number): Promise<(PullRequest & { repository: Repository })[]>;
+  getRecentPullRequests(limit?: number): Promise<(PullRequest & { repository: Repository; reports: Report[] })[]>;
 
   // Reports
   getReportsByPullRequest(pullRequestId: string): Promise<Report[]>;
@@ -132,7 +132,7 @@ export class DatabaseStorage implements IStorage {
     return updated || undefined;
   }
 
-  async getRecentPullRequests(limit = 10): Promise<(PullRequest & { repository: Repository })[]> {
+  async getRecentPullRequests(limit = 10): Promise<(PullRequest & { repository: Repository; reports: Report[] })[]> {
     const result = await db
       .select()
       .from(pullRequests)
@@ -140,10 +140,19 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(pullRequests.updatedAt))
       .limit(limit);
 
-    return result.map(row => ({
-      ...row.pull_requests,
-      repository: row.repositories!
-    }));
+    // Fetch reports for each pull request
+    const pullRequestsWithReports = await Promise.all(
+      result.map(async (row) => {
+        const pullRequestReports = await this.getReportsByPullRequest(row.pull_requests.id);
+        return {
+          ...row.pull_requests,
+          repository: row.repositories!,
+          reports: pullRequestReports
+        };
+      })
+    );
+
+    return pullRequestsWithReports;
   }
 
   async getReportsByPullRequest(pullRequestId: string): Promise<Report[]> {
