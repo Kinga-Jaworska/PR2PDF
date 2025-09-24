@@ -1,0 +1,159 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Management Analysis: Add new feature</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            border-bottom: 3px solid #4F46E5;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #4F46E5;
+            margin: 0;
+            font-size: 28px;
+        }
+        .audience-badge {
+            background: #4F46E5;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .summary {
+            background: #F8FAFC;
+            padding: 20px;
+            border-left: 4px solid #4F46E5;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section h2 {
+            color: #1E293B;
+            border-bottom: 2px solid #E2E8F0;
+            padding-bottom: 5px;
+        }
+        .test-scenarios {
+            background: #FEF3C7;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #F59E0B;
+        }
+        .recommendations {
+            background: #ECFDF5;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #10B981;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #E2E8F0;
+            text-align: center;
+            color: #6B7280;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Project Management Analysis: Add new feature</h1>
+        <span class="audience-badge">Report for Project Manager</span>
+    </div>
+
+    <div class="summary">
+        <h2>Executive Summary</h2>
+        <p>This pull request introduces a new, undefined feature. While it represents progress from a development standpoint, the complete lack of descriptive information presents a significant risk to project alignment, timeline, and quality assurance. The business value and impact are currently impossible to assess, making it a high-priority item for clarification before it can be integrated into any project milestone.</p>
+    </div>
+
+    
+        <div class="section">
+            <h2>Executive Summary & Business Impact</h2>
+            <p>The pull request, submitted by 'testuser', proposes the addition of a 'new feature'. The changes are isolated to a single file, 'test.js', with minimal lines of code modified. Due to the generic title and the absence of a description, linkage to a user story, or business requirements, the intended business value is unknown. This delivery cannot be mapped to our current product roadmap or sprint goals without further context, posing a risk of developing un-prioritized or misaligned functionality.</p>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Feature Impact Analysis</h2>
+            <p>The user-facing impact of this feature is entirely unclear. The code modification replaces 'old code' with 'new code', suggesting a functional change, but its purpose—whether it's a bug fix, an enhancement, or a net-new capability—is not specified. Without this information, we cannot assess its impact on user workflows, UI, or backend systems. This ambiguity prevents the creation of proper documentation, training materials, or release notes.</p>
+            
+                <ul>
+                    <li>User Impact: Unknown. Could range from none to significant.</li><li>Dependencies: Potential dependencies on other services or components are not documented.</li><li>Integration: Cannot be planned for integration with project milestones until the feature is fully defined.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Timeline & Resource Considerations</h2>
+            <p>The author 'testuser' is allocated to this task. The small code change (+10, -2 lines) suggests a low level of development effort. However, the lack of information acts as a significant blocker for the review and QA process. The time required for clarification, potential rework, and subsequent testing could negate the small initial development time, potentially delaying the sprint or milestone delivery if this feature is on the critical path.</p>
+            
+                <ul>
+                    <li>Resource Allocated: testuser</li><li>Estimated Effort: Low (for coding), High (for clarification and review).</li><li>Blocker: The pull request is blocked pending clarification of its purpose, scope, and requirements.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Risk Assessment & Mitigation Strategies</h2>
+            <p>The primary risk is delivering a feature that does not meet business needs or introduces unintended side effects. The lack of documentation violates standard development processes and makes future maintenance difficult and costly.</p>
+            
+                <ul>
+                    <li>Risk 1 (High): Misalignment with Project Goals. The feature may not be a prioritized item, wasting development resources.</li><li>Mitigation 1: Immediately engage the author and Product Owner to validate the feature against the project backlog and roadmap.</li><li>Risk 2 (High): Quality Assurance Gap. Without requirements or acceptance criteria, the QA team cannot create a valid test plan, leading to a high risk of bugs.</li><li>Mitigation 2: Do not merge this PR. Require the author to add a detailed description, testing steps, and link it to the relevant task in the project management tool.</li><li>Risk 3 (Medium): Knowledge Silo. The feature's functionality is only known by the author, creating a maintenance risk.</li><li>Mitigation 3: Enforce team standards for pull request descriptions and in-code documentation.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Stakeholder Communication Points</h2>
+            <p>Clear communication is required to resolve the ambiguity of this pull request.</p>
+            
+                <ul>
+                    <li>To Product Owner: 'We have a new feature PR that is not tied to a user story. Can you please review with the developer to confirm its priority and alignment with our current sprint goals?'</li><li>To Development Lead: 'PR #XYZ lacks the necessary description for a proper code review. Please work with 'testuser' to update it per our team's guidelines.'</li><li>To QA Lead: 'A new feature is proposed, but we have no requirements to build a test plan. QA is blocked until this is clarified.'</li>
+                </ul>
+            
+        </div>
+    
+
+    
+        <div class="test-scenarios">
+            <h2>📋 Recommended Test Scenarios</h2>
+            <ul>
+                <li>Note: A formal test plan cannot be created without feature requirements. The following are generic placeholders.</li><li>Positive Scenario: Verify the intended functionality of the 'new code' works as expected under normal conditions.</li><li>Negative Scenario: Test how the 'new code' handles invalid inputs or unexpected states.</li><li>Regression Scenario: Execute existing tests for functionalities related to 'test.js' to ensure no regressions were introduced.</li>
+            </ul>
+        </div>
+    
+
+    
+        <div class="recommendations">
+            <h2>💡 Recommendations</h2>
+            <ul>
+                <li>IMMEDIATE ACTION: Do not merge this pull request in its current state.</li><li>Require the author ('testuser') to provide a comprehensive update to the pull request description, including the business problem, the proposed solution, and steps for testing.</li><li>The pull request must be linked to a corresponding ticket/user story in the project management system (e.g., Jira, Azure DevOps).</li><li>Reinforce the team's 'Definition of Ready' for pull requests to include clear, descriptive titles and detailed summaries as a mandatory requirement.</li>
+            </ul>
+        </div>
+    
+
+    <div class="footer">
+        <p>Generated by PR Insight • 9/24/2025</p>
+    </div>
+</body>
+</html>

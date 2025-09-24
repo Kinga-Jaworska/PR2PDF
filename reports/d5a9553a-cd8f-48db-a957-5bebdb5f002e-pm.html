@@ -1,0 +1,153 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Management Analysis: PR 'Add new feature'</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            border-bottom: 3px solid #4F46E5;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #4F46E5;
+            margin: 0;
+            font-size: 28px;
+        }
+        .audience-badge {
+            background: #4F46E5;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .summary {
+            background: #F8FAFC;
+            padding: 20px;
+            border-left: 4px solid #4F46E5;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section h2 {
+            color: #1E293B;
+            border-bottom: 2px solid #E2E8F0;
+            padding-bottom: 5px;
+        }
+        .test-scenarios {
+            background: #FEF3C7;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #F59E0B;
+        }
+        .recommendations {
+            background: #ECFDF5;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #10B981;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #E2E8F0;
+            text-align: center;
+            color: #6B7280;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Project Management Analysis: PR 'Add new feature'</h1>
+        <span class="audience-badge">Report for Project Manager</span>
+    </div>
+
+    <div class="summary">
+        <h2>Executive Summary</h2>
+        <p>This pull request, titled 'Add new feature', introduces a change of unknown scope and business value. Due to the complete lack of a description, linked ticket, or context, it is impossible to assess its alignment with project milestones, user impact, or business objectives. The changes in 'test.js' (+10/-2 lines) are noted, but their purpose is unclear. This PR represents a significant project risk in its current state, as it blocks resource allocation for review and QA, and could introduce unintended consequences if merged. Immediate clarification from the author is required before any further action is taken.</p>
+    </div>
+
+    
+        <div class="section">
+            <h2>Feature Impact and Business Value Assessment</h2>
+            <p>The business impact and feature value are currently 'Undetermined'. The generic title and absence of a description make it impossible to connect this work to any planned user story, epic, or strategic goal.</p>
+            
+                <ul>
+                    <li>User-Facing Changes: Unknown. It is unclear if this feature introduces new UI elements, alters existing workflows, or is a backend-only change. This ambiguity prevents any assessment of the impact on user experience.</li><li>Business Goal Alignment: Cannot be determined. The change cannot be mapped to the current product roadmap or sprint goals, making its priority and relevance questionable.</li><li>Dependencies and Blockers: Potential dependencies on other services or upcoming features are unknown. This change could be a blocker for other work or be blocked itself, but this cannot be verified without more information.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Timeline and Resource Considerations</h2>
+            <p>This PR negatively impacts the project timeline by introducing an unscheduled and undefined work item. It creates a bottleneck as project resources cannot be efficiently allocated for review, testing, or documentation until the feature's purpose is fully understood.</p>
+            
+                <ul>
+                    <li>Resource Allocation: Assigning development or QA resources to this PR would be inefficient. Time will be wasted on discovery and communication that should have been provided upfront.</li><li>Timeline Implications: The PR is currently a blocker for its own progress. The delay caused by seeking clarification will postpone its potential integration and any subsequent release it might be a part of.</li><li>Integration with Milestones: The feature cannot be integrated into any existing project milestone. Its sudden appearance suggests it may be out-of-band work that could disrupt planned delivery schedules.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Risk Assessment and Mitigation Strategies</h2>
+            <p>The primary risk is merging an undocumented, unvetted, and potentially untested change into the main codebase. This could lead to production incidents, regressions in existing functionality, or the introduction of significant technical debt.</p>
+            
+                <ul>
+                    <li>Risk: Unintended Side Effects. Without context, it's impossible for a reviewer to identify potential negative interactions with other parts of the application.</li><li>Risk: Misalignment with Project Priorities. The work may not be a priority for the business, diverting team focus from committed deliverables.</li><li>Risk: Increased Maintenance Overhead. Code merged without clear documentation and purpose is difficult to maintain, troubleshoot, and transfer knowledge on.</li><li>Mitigation: Immediately place the PR in a 'Blocked' or 'Draft' state. The merge must be prohibited until the author provides a detailed description, links a project management ticket, and outlines testing procedures.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Stakeholder Communication Points</h2>
+            <p>Clear and immediate communication is required to resolve the ambiguity of this pull request and prevent it from disrupting the workflow.</p>
+            
+                <ul>
+                    <li>To the Author ('testuser'): Please update the PR description immediately with the feature's business purpose, a summary of technical changes, steps for testing, and a link to the corresponding ticket/user story.</li><li>To the Product Owner / Project Manager: Alert that an undocumented feature request has been submitted. Its priority needs to be assessed against the current backlog and roadmap once details are provided.</li><li>To the QA Team: Do not begin test planning for this feature. Awaiting functional requirements and acceptance criteria.</li><li>To the Engineering Lead: Flag this PR as a process violation. Reinforce the team's standards for pull request documentation to prevent recurrence.</li>
+                </ul>
+            
+        </div>
+    
+
+    
+        <div class="test-scenarios">
+            <h2>📋 Recommended Test Scenarios</h2>
+            <ul>
+                <li>Test scenario development is currently blocked.</li><li>Awaiting functional and non-functional requirements to create a comprehensive test plan.</li><li>Once the feature is defined, regression testing will be required for any modules impacted by the changes in 'test.js'.</li>
+            </ul>
+        </div>
+    
+
+    
+        <div class="recommendations">
+            <h2>💡 Recommendations</h2>
+            <ul>
+                <li>Do not approve or merge this pull request until a complete description and business justification are provided by the author.</li><li>Implement and enforce a mandatory pull request template that requires a link to a work item (e.g., Jira, Asana ticket), a summary of changes, and detailed testing instructions.</li><li>Place this PR in a 'Needs Information' status to clearly signal that it is blocked pending author action.</li>
+            </ul>
+        </div>
+    
+
+    <div class="footer">
+        <p>Generated by PR Insight • 9/24/2025</p>
+    </div>
+</body>
+</html>
