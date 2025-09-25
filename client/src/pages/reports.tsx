@@ -202,7 +202,7 @@ export default function ReportsPage() {
           ) : (
             <div className="grid gap-4">
               {/* Repository Reports */}
-              {repositoryReports?.sort((a, b) => new Date(b.generatedAt!).getTime() - new Date(a.generatedAt!).getTime()).map((report) => (
+              {[...(repositoryReports ?? [])].sort((a, b) => new Date(b.generatedAt!).getTime() - new Date(a.generatedAt!).getTime()).map((report) => (
                 <Card key={`repo-${report.id}`} className="hover:shadow-md transition-shadow" data-testid={`repository-report-${report.id}`}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -367,7 +367,7 @@ export default function ReportsPage() {
             </Card>
           ) : (
             <div className="grid gap-4">
-              {mvpReports.sort((a, b) => new Date(b.generatedAt!).getTime() - new Date(a.generatedAt!).getTime()).map((report) => (
+              {[...mvpReports].sort((a, b) => new Date(b.generatedAt!).getTime() - new Date(a.generatedAt!).getTime()).map((report) => (
                 <Card key={`mvp-${report.id}`} className="hover:shadow-md transition-shadow" data-testid={`mvp-report-${report.id}`}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
