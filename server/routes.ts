@@ -353,7 +353,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: pr.title,
           author: pr.authorName,
           status: pr.status,
-          reviewStatus: pr.reviewStatus,
+          reviewStatus: pr.reviewStatus || undefined,
           createdAt: pr.createdAt,
           updatedAt: pr.updatedAt,
           mergedAt: pr.mergedAt
@@ -367,32 +367,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Generate repository report content using Gemini AI
-      // TODO: Implement generateRepositoryReportContent method in Gemini service
-      const content = {
-        title: `${repository.name} MVP Summary Report`,
-        summary: `A comprehensive overview of the ${repository.name} repository with ${pullRequests.length} pull requests.`,
-        sections: [
-          {
-            title: "Repository Overview",
-            content: `This repository contains ${repositoryData.summary.completedFeatures} completed features and ${repositoryData.summary.activeFeatures} features in development.`,
-            items: [
-              `Total Pull Requests: ${repositoryData.repository.totalPRs}`,
-              `Merged PRs: ${repositoryData.repository.mergedPRs}`,
-              `Open PRs: ${repositoryData.repository.openPRs}`,
-              `Contributors: ${repositoryData.summary.totalContributors}`
-            ]
-          }
-        ],
-        recommendations: [
-          "Continue regular development and code review practices",
-          "Monitor open pull requests for timely reviews"
-        ]
-      };
-      // const content = await geminiService.generateRepositoryReportContent(
-      //   repositoryData, 
-      //   reportType,
-      //   templateId ? await storage.getReportTemplate(templateId) : undefined
-      // );
+      const content = await geminiService.generateRepositoryReportContent(
+        repositoryData, 
+        reportType,
+        templateId ? await storage.getReportTemplate(templateId) : undefined
+      );
 
       // Create repository report record
       const report = await storage.createRepositoryReport({

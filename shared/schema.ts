@@ -152,3 +152,31 @@ export type ReportTemplate = typeof reportTemplates.$inferSelect;
 export type InsertReportTemplate = z.infer<typeof insertReportTemplateSchema>;
 export type RepositoryReport = typeof repositoryReports.$inferSelect;
 export type InsertRepositoryReport = z.infer<typeof insertRepositoryReportSchema>;
+
+// Repository report input data types
+export interface RepositoryReportInput {
+  repository: {
+    name: string;
+    fullName: string;
+    totalPRs: number;
+    openPRs: number;
+    closedPRs: number;
+    mergedPRs: number;
+  };
+  pullRequests: Array<{
+    number: number;
+    title: string;
+    author: string;
+    status: string;
+    reviewStatus?: string;
+    createdAt: Date;
+    updatedAt: Date;
+    mergedAt?: Date | null;
+  }>;
+  summary: {
+    activeFeatures: number;
+    completedFeatures: number;
+    totalContributors: number;
+    lastActivity: Date;
+  };
+}
