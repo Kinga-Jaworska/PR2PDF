@@ -159,7 +159,7 @@ export default function Dashboard() {
             Generate Repository Report
           </CardTitle>
           <CardDescription>
-            Create comprehensive MVP progress and client overview reports for your repositories
+            Create comprehensive MVP progress and client overview reports for your repositories. You can generate multiple reports of the same type to track progress over time.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

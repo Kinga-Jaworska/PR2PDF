@@ -202,7 +202,7 @@ export default function ReportsPage() {
           ) : (
             <div className="grid gap-4">
               {/* Repository Reports */}
-              {repositoryReports?.map((report) => (
+              {repositoryReports?.sort((a, b) => new Date(b.generatedAt!).getTime() - new Date(a.generatedAt!).getTime()).map((report) => (
                 <Card key={`repo-${report.id}`} className="hover:shadow-md transition-shadow" data-testid={`repository-report-${report.id}`}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -214,7 +214,14 @@ export default function ReportsPage() {
                           </Badge>
                         </div>
                         <CardTitle className="text-lg" data-testid="repository-report-title">
-                          {report.repository.name} - Repository Report
+                          {report.repository.name} - {report.reportType === 'mvp_summary' ? 'MVP Summary' : 'Client Overview'} Report
+                          {(() => {
+                            const sameTypeReports = (repositoryReports ?? [])
+                              .filter(r => r.repository.id === report.repository.id && r.reportType === report.reportType)
+                              .sort((a, b) => new Date(a.generatedAt!).getTime() - new Date(b.generatedAt!).getTime());
+                            const reportIndex = sameTypeReports.findIndex(r => r.id === report.id);
+                            return sameTypeReports.length > 1 ? ` (#${reportIndex + 1})` : '';
+                          })()}
                         </CardTitle>
                         <CardDescription className="flex items-center gap-4 text-sm">
                           <span className="flex items-center gap-1">
@@ -360,7 +367,7 @@ export default function ReportsPage() {
             </Card>
           ) : (
             <div className="grid gap-4">
-              {mvpReports.map((report) => (
+              {mvpReports.sort((a, b) => new Date(b.generatedAt!).getTime() - new Date(a.generatedAt!).getTime()).map((report) => (
                 <Card key={`mvp-${report.id}`} className="hover:shadow-md transition-shadow" data-testid={`mvp-report-${report.id}`}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -373,6 +380,13 @@ export default function ReportsPage() {
                         </div>
                         <CardTitle className="text-lg" data-testid="mvp-report-title">
                           {report.repository.name} - MVP Report
+                          {(() => {
+                            const sameRepoMvpReports = mvpReports
+                              .filter(r => r.repository.id === report.repository.id)
+                              .sort((a, b) => new Date(a.generatedAt!).getTime() - new Date(b.generatedAt!).getTime());
+                            const reportIndex = sameRepoMvpReports.findIndex(r => r.id === report.id);
+                            return sameRepoMvpReports.length > 1 ? ` (#${reportIndex + 1})` : '';
+                          })()}
                         </CardTitle>
                         <CardDescription className="flex items-center gap-4 text-sm">
                           <span className="flex items-center gap-1">
