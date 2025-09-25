@@ -64,25 +64,33 @@ PR Insight is a comprehensive GitHub repository analysis platform that automates
 
 ![image](image.png)
 
+### Connecting with REPO
+![image](image_9.png)
+![image](image_3.png)
 
 ### Reports Management  
 *Generated reports with action buttons for creating additional report types*
+![image](image_4.png)
 
-![image](image_2.png)
+![image](image_5.png)
 
 ### Pull Request Risk Assessment
 *Color-coded PR analysis with risk indicators and detailed insights*
 
-![PR Risk Assessment](attached_assets/generated_images/PR_risk_assessment_view_595bf0bb.png)
-*Note: Mockup interface design - actual application interface may vary*
+![image](image_6.png)
 
 ### PDF Report Preview
 *Professional AI-generated reports with comprehensive analysis*
+![image](image_10.png)
+![image](image_11.png)
 
-![PDF Report Preview](attached_assets/generated_images/PDF_report_preview_2fbeb0d7.png)
-*Note: Mockup interface design - actual application interface may vary*
+![image](image_12.png)
+![image](image_13.png)
 
-> **Note**: The screenshots above are design mockups to illustrate the application's functionality. For actual screenshots of the running application, please run the application locally and capture your own screenshots.
+### Report templates
+![image](image_7.png)
+![image](image_8.png)
+
 
 ## 🛠️ Installation & Setup
 
