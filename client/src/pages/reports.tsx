@@ -24,7 +24,7 @@ export default function ReportsPage() {
   });
 
   const { data: repositoryReports, isLoading: repositoryReportsLoading } = useQuery<RepositoryReportWithDetails[]>({
-    queryKey: ["/api/repositories/reports"],
+    queryKey: ["/api/repository-reports"],
   });
 
   const isLoading = reportsLoading || repositoryReportsLoading;
