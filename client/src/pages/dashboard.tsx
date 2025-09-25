@@ -7,7 +7,7 @@ import AddRepositoryModal from "@/components/add-repository-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, FileText, Building, Download, Eye } from "lucide-react";
+import { RefreshCw, FileText, Building, Download, Eye, GitPullRequest } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Repository, PullRequest, Insight, ReportTemplate } from "@shared/schema";
@@ -17,6 +17,9 @@ export default function Dashboard() {
   const [selectedRepository, setSelectedRepository] = useState<string>("");
   const [selectedReportType, setSelectedReportType] = useState<string>("");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
+  const [selectedPR, setSelectedPR] = useState<string>("");
+  const [selectedPRAudienceType, setSelectedPRAudienceType] = useState<string>("");
+  const [selectedPRTemplate, setSelectedPRTemplate] = useState<string>("");
   const { toast } = useToast();
 
   const { data: statistics, isLoading: statsLoading } = useQuery<{
@@ -58,7 +61,7 @@ export default function Dashboard() {
         description: "Repository report has been generated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/repositories/reports"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/repository-reports"] });
       queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
     },
     onError: (error) => {
@@ -66,6 +69,33 @@ export default function Dashboard() {
       toast({
         title: "Generation failed",
         description: "Failed to generate repository report. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const generatePRReportMutation = useMutation({
+    mutationFn: async ({ prId, audienceType, templateId }: { prId: string; audienceType: string; templateId?: string }) => {
+      const body: any = { audienceType };
+      if (templateId) {
+        body.templateId = templateId;
+      }
+      return apiRequest("POST", `/api/pull-requests/${prId}/reports`, body);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Report generated",
+        description: "Pull request report has been generated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pull-requests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/statistics"] });
+    },
+    onError: (error) => {
+      console.error("PR report generation error:", error);
+      toast({
+        title: "Generation failed",
+        description: "Failed to generate pull request report. Please try again.",
         variant: "destructive",
       });
     },
@@ -117,6 +147,23 @@ export default function Dashboard() {
       repositoryId: selectedRepository,
       reportType: selectedReportType,
       templateId: selectedTemplate || undefined,
+    });
+  };
+
+  const handleGeneratePRReport = () => {
+    if (!selectedPR || !selectedPRAudienceType) {
+      toast({
+        title: "Missing selection",
+        description: "Please select a pull request and audience type.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    generatePRReportMutation.mutate({
+      prId: selectedPR,
+      audienceType: selectedPRAudienceType,
+      templateId: selectedPRTemplate || undefined,
     });
   };
 
@@ -217,6 +264,88 @@ export default function Dashboard() {
               data-testid="button-generate-repository-report"
             >
               {generateRepositoryReportMutation.isPending ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate Report
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Pull Request Report Generation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <GitPullRequest className="h-5 w-5" />
+            Generate Pull Request Report
+          </CardTitle>
+          <CardDescription>
+            Create targeted reports for specific pull requests based on audience needs (PM, QA, Client). You can generate multiple reports for the same PR.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Pull Request</label>
+              <Select value={selectedPR} onValueChange={setSelectedPR}>
+                <SelectTrigger data-testid="select-pull-request">
+                  <SelectValue placeholder="Select pull request" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pullRequests?.map((pr) => (
+                    <SelectItem key={pr.id} value={pr.id}>
+                      PR #{pr.number}: {pr.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Audience Type</label>
+              <Select value={selectedPRAudienceType} onValueChange={setSelectedPRAudienceType}>
+                <SelectTrigger data-testid="select-audience-type">
+                  <SelectValue placeholder="Select audience type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pm">Project Manager</SelectItem>
+                  <SelectItem value="qa">QA Team</SelectItem>
+                  <SelectItem value="client">Client</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Template (Optional)</label>
+              <Select value={selectedPRTemplate} onValueChange={setSelectedPRTemplate}>
+                <SelectTrigger data-testid="select-pr-template">
+                  <SelectValue placeholder="Select template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates?.filter(t => t.audienceType === selectedPRAudienceType).map((template) => (
+                    <SelectItem key={template.id} value={template.id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              onClick={handleGeneratePRReport}
+              disabled={!selectedPR || !selectedPRAudienceType || generatePRReportMutation.isPending}
+              data-testid="button-generate-pr-report"
+            >
+              {generatePRReportMutation.isPending ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                   Generating...

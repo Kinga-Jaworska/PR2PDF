@@ -1,12 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { FileText, Download, Eye, Calendar, User, GitPullRequest, Building } from "lucide-react";
+import { FileText, Download, Eye, Calendar, User, GitPullRequest, Building, Plus } from "lucide-react";
 import { format } from "date-fns";
-import type { Report, PullRequest, Repository, RepositoryReport } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { Report, PullRequest, Repository, RepositoryReport, ReportTemplate } from "@shared/schema";
 
 type ReportWithDetails = Report & {
   pullRequest: PullRequest & {
@@ -19,6 +21,8 @@ type RepositoryReportWithDetails = RepositoryReport & {
 };
 
 export default function ReportsPage() {
+  const { toast } = useToast();
+  
   const { data: reports, isLoading: reportsLoading } = useQuery<ReportWithDetails[]>({
     queryKey: ["/api/reports"],
   });
@@ -27,10 +31,92 @@ export default function ReportsPage() {
     queryKey: ["/api/repository-reports"],
   });
 
+  // Templates are fetched but currently unused in action buttons - consider adding template selection or removing
+
   const isLoading = reportsLoading || repositoryReportsLoading;
+
+  // Mutations for generating additional reports
+  const generateRepositoryReportMutation = useMutation({
+    mutationFn: async ({ repositoryId, reportType, templateId }: { repositoryId: string; reportType: string; templateId?: string }) => {
+      const body: any = { repositoryId, reportType };
+      if (templateId) {
+        body.templateId = templateId;
+      }
+      return apiRequest("POST", "/api/repositories/reports", body);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Report generated",
+        description: "Repository report has been generated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/repository-reports"] });
+    },
+    onError: (error) => {
+      console.error("Repository report generation error:", error);
+      toast({
+        title: "Generation failed",
+        description: "Failed to generate repository report. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const generatePRReportMutation = useMutation({
+    mutationFn: async ({ prId, audienceType, templateId }: { prId: string; audienceType: string; templateId?: string }) => {
+      const body: any = { audienceType };
+      if (templateId) {
+        body.templateId = templateId;
+      }
+      return apiRequest("POST", `/api/pull-requests/${prId}/reports`, body);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Report generated",
+        description: "Pull request report has been generated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/pull-requests"] });
+    },
+    onError: (error) => {
+      console.error("PR report generation error:", error);
+      toast({
+        title: "Generation failed",
+        description: "Failed to generate pull request report. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Filter MVP reports (repository reports with type 'mvp_summary')
   const mvpReports = repositoryReports?.filter(report => report.reportType === 'mvp_summary') || [];
+
+  // Helper functions for generating additional reports
+  const getAvailableRepositoryReportTypes = (currentReportType: string) => {
+    const allTypes = [
+      { value: 'mvp_summary', label: 'MVP Summary' },
+      { value: 'client_overview', label: 'Client Overview' }
+    ];
+    return allTypes.filter(type => type.value !== currentReportType);
+  };
+
+  const getAvailablePRAudienceTypes = (currentAudienceType: string, existingReports: Report[]) => {
+    const allTypes = [
+      { value: 'pm', label: 'Project Manager' },
+      { value: 'qa', label: 'QA Team' },
+      { value: 'client', label: 'Client' }
+    ];
+    const existingTypes = existingReports.map(r => r.audienceType);
+    return allTypes.filter(type => !existingTypes.includes(type.value));
+  };
+
+  const handleGenerateRepositoryReport = (repositoryId: string, reportType: string) => {
+    generateRepositoryReportMutation.mutate({ repositoryId, reportType });
+  };
+
+  const handleGeneratePRReport = (prId: string, audienceType: string) => {
+    generatePRReportMutation.mutate({ prId, audienceType });
+  };
 
   const getAudienceColor = (audienceType: string) => {
     switch (audienceType) {
@@ -253,6 +339,19 @@ export default function ReportsPage() {
                           <Eye className="h-4 w-4 mr-2" />
                           Preview
                         </Button>
+                        {getAvailableRepositoryReportTypes(report.reportType).map((reportType) => (
+                          <Button
+                            key={reportType.value}
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleGenerateRepositoryReport(report.repository.id, reportType.value)}
+                            disabled={generateRepositoryReportMutation.isPending}
+                            data-testid={`button-generate-${reportType.value}-${report.id}`}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Generate {reportType.label}
+                          </Button>
+                        ))}
                       </div>
                     </div>
                   </CardHeader>
@@ -326,6 +425,19 @@ export default function ReportsPage() {
                           <Eye className="h-4 w-4 mr-2" />
                           Preview
                         </Button>
+                        {getAvailablePRAudienceTypes(report.audienceType, reports?.filter(r => r.pullRequest.id === report.pullRequest.id) || []).map((audienceType) => (
+                          <Button
+                            key={audienceType.value}
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleGeneratePRReport(report.pullRequest.id, audienceType.value)}
+                            disabled={generatePRReportMutation.isPending}
+                            data-testid={`button-generate-${audienceType.value}-${report.id}`}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Generate {audienceType.label}
+                          </Button>
+                        ))}
                       </div>
                     </div>
                   </CardHeader>
@@ -418,6 +530,19 @@ export default function ReportsPage() {
                           <Eye className="h-4 w-4 mr-2" />
                           Preview
                         </Button>
+                        {getAvailableRepositoryReportTypes(report.reportType).map((reportType) => (
+                          <Button
+                            key={reportType.value}
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleGenerateRepositoryReport(report.repository.id, reportType.value)}
+                            disabled={generateRepositoryReportMutation.isPending}
+                            data-testid={`button-generate-${reportType.value}-mvp-${report.id}`}
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Generate {reportType.label}
+                          </Button>
+                        ))}
                       </div>
                     </div>
                   </CardHeader>
