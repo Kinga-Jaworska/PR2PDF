@@ -199,6 +199,8 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
     return acc;
   }, {} as Record<string, ReportTemplate[]>);
 
+  // Templates are now grouped correctly by audience type
+
   const uniqueRepos = Array.from(new Set(pullRequests.map(pr => pr.repository.name)));
   
   const filteredPRs = selectedRepo === "all" 

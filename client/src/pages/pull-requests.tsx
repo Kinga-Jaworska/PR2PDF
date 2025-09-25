@@ -3,13 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { GitBranch, Clock, User, FileText, Download, RefreshCw, Users, TestTube, UserCheck, AlertTriangle, AlertCircle, AlertOctagon, CheckCircle, ChevronDown, Eye } from "lucide-react";
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { ReportTemplate } from "@shared/schema";
 
 interface PullRequest {
   id: string;
@@ -46,8 +47,12 @@ export default function PullRequestsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [repositoryFilter, setRepositoryFilter] = useState<string>("all");
-  // Remove selectedTemplate state as we no longer need it
   const { toast } = useToast();
+
+  // Fetch available templates
+  const { data: templates = [] } = useQuery<ReportTemplate[]>({
+    queryKey: ["/api/report-templates"],
+  });
 
   // Default templates
   const defaultTemplates: Template[] = [
@@ -88,6 +93,15 @@ export default function PullRequestsPage() {
     queryKey: ["/api/repositories"],
   });
 
+  // Group templates by audience type
+  const templatesByType = templates.reduce((acc, template) => {
+    if (!acc[template.audienceType]) {
+      acc[template.audienceType] = [];
+    }
+    acc[template.audienceType].push(template);
+    return acc;
+  }, {} as Record<string, ReportTemplate[]>);
+
   const filteredPullRequests = pullRequests.filter((pr) => {
     const matchesSearch = pr.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          pr.authorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -98,11 +112,13 @@ export default function PullRequestsPage() {
     return matchesSearch && matchesStatus && matchesRepository;
   });
 
-  const handleGenerateReport = async (pullRequestId: string, audienceType: string) => {
+  const handleGenerateReport = async (pullRequestId: string, audienceType: string, templateId?: string) => {
     try {
-      await apiRequest("POST", `/api/pull-requests/${pullRequestId}/reports`, {
-        audienceType,
-      });
+      const requestBody: { audienceType: string; templateId?: string } = { audienceType };
+      if (templateId) {
+        requestBody.templateId = templateId;
+      }
+      await apiRequest("POST", `/api/pull-requests/${pullRequestId}/reports`, requestBody);
       toast({
         title: "Report generated",
         description: `The ${audienceType.toUpperCase()} report has been generated successfully.`,
@@ -390,34 +406,73 @@ export default function PullRequestsPage() {
                               <ChevronDown className="ml-2 h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
+                          <DropdownMenuContent align="end" className="w-64">
+                            {/* PM Reports Section */}
+                            <DropdownMenuLabel>Project Manager Reports</DropdownMenuLabel>
+                            <DropdownMenuItem 
                               onClick={() => handleGenerateReport(pr.id, "pm")}
-                              data-testid={`menu-generate-pm-${pr.number}`}
+                              data-testid={`menu-generate-pm-default-${pr.number}`}
                             >
-                              <Users className="mr-2 h-4 w-4" />
-                              PM Report
+                              Default PM Report
                             </DropdownMenuItem>
-                            <DropdownMenuItem
+                            {templatesByType["pm"]?.map((template) => (
+                              <DropdownMenuItem 
+                                key={template.id}
+                                onClick={() => handleGenerateReport(pr.id, "pm", template.id)}
+                                data-testid={`menu-generate-pm-template-${template.id}-${pr.number}`}
+                              >
+                                📋 {template.name}
+                              </DropdownMenuItem>
+                            ))}
+                            
+                            <DropdownMenuSeparator />
+                            
+                            {/* QA Reports Section */}
+                            <DropdownMenuLabel>QA Team Reports</DropdownMenuLabel>
+                            <DropdownMenuItem 
                               onClick={() => handleGenerateReport(pr.id, "qa")}
-                              data-testid={`menu-generate-qa-${pr.number}`}
+                              data-testid={`menu-generate-qa-default-${pr.number}`}
                             >
-                              <TestTube className="mr-2 h-4 w-4" />
-                              QA Report
+                              Default QA Report
                             </DropdownMenuItem>
-                            <DropdownMenuItem
+                            {templatesByType["qa"]?.map((template) => (
+                              <DropdownMenuItem 
+                                key={template.id}
+                                onClick={() => handleGenerateReport(pr.id, "qa", template.id)}
+                                data-testid={`menu-generate-qa-template-${template.id}-${pr.number}`}
+                              >
+                                🧪 {template.name}
+                              </DropdownMenuItem>
+                            ))}
+                            
+                            <DropdownMenuSeparator />
+                            
+                            {/* Client Reports Section */}
+                            <DropdownMenuLabel>Client Reports</DropdownMenuLabel>
+                            <DropdownMenuItem 
                               onClick={() => handleGenerateReport(pr.id, "client")}
-                              data-testid={`menu-generate-client-${pr.number}`}
+                              data-testid={`menu-generate-client-default-${pr.number}`}
                             >
-                              <UserCheck className="mr-2 h-4 w-4" />
-                              Client Report
+                              Default Client Report
                             </DropdownMenuItem>
-                            <DropdownMenuItem
+                            {templatesByType["client"]?.map((template) => (
+                              <DropdownMenuItem 
+                                key={template.id}
+                                onClick={() => handleGenerateReport(pr.id, "client", template.id)}
+                                data-testid={`menu-generate-client-template-${template.id}-${pr.number}`}
+                              >
+                                👤 {template.name}
+                              </DropdownMenuItem>
+                            ))}
+                            
+                            <DropdownMenuSeparator />
+                            
+                            {/* Generate All Option */}
+                            <DropdownMenuItem 
                               onClick={() => handleGenerateAllReports(pr.id)}
                               data-testid={`menu-generate-all-${pr.number}`}
                             >
-                              <FileText className="mr-2 h-4 w-4" />
-                              Generate All Reports
+                              🚀 Generate All Default Reports
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
