@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { githubService } from "./services/github";
 import { geminiService } from "./services/gemini";
 import { pdfService } from "./services/pdf";
-import { insertRepositorySchema, insertReportSchema, insertReportTemplateSchema } from "@shared/schema";
+import { insertRepositorySchema, insertReportSchema, insertReportTemplateSchema, insertRepositoryReportSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -313,6 +313,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating report:", error);
       res.status(500).json({ message: "Failed to generate report" });
+    }
+  });
+
+  // Repository report generation
+  app.post("/api/repositories/:id/reports", async (req, res) => {
+    try {
+      const { reportType = "mvp_summary", title, templateId } = req.body;
+      
+      const repository = await storage.getRepository(req.params.id);
+      if (!repository) {
+        return res.status(404).json({ message: "Repository not found" });
+      }
+
+      // Get all pull requests for the repository
+      const pullRequests = await storage.getPullRequestsByRepository(req.params.id);
+      if (pullRequests.length === 0) {
+        return res.status(400).json({ message: "No pull requests found for repository. Please sync the repository first." });
+      }
+
+      // Check if this is a demo repository
+      const isDemoRepo = repository.githubToken === "demo-token-not-real" || 
+                        repository.fullName.toLowerCase().includes("demo") ||
+                        repository.githubToken === "demo" || 
+                        repository.githubToken === "test";
+
+      // Create repository summary data for report generation
+      const repositoryData = {
+        repository: {
+          name: repository.name,
+          fullName: repository.fullName,
+          totalPRs: pullRequests.length,
+          openPRs: pullRequests.filter(pr => pr.status === 'open').length,
+          closedPRs: pullRequests.filter(pr => pr.status === 'closed').length,
+          mergedPRs: pullRequests.filter(pr => pr.status === 'merged').length,
+        },
+        pullRequests: pullRequests.map(pr => ({
+          number: pr.number,
+          title: pr.title,
+          author: pr.authorName,
+          status: pr.status,
+          reviewStatus: pr.reviewStatus,
+          createdAt: pr.createdAt,
+          updatedAt: pr.updatedAt,
+          mergedAt: pr.mergedAt
+        })),
+        summary: {
+          activeFeatures: pullRequests.filter(pr => pr.status === 'open').length,
+          completedFeatures: pullRequests.filter(pr => pr.status === 'merged').length,
+          totalContributors: Array.from(new Set(pullRequests.map(pr => pr.authorName))).length,
+          lastActivity: pullRequests.length > 0 ? pullRequests[0].updatedAt : new Date()
+        }
+      };
+
+      // Generate repository report content using Gemini AI
+      // TODO: Implement generateRepositoryReportContent method in Gemini service
+      const content = {
+        title: `${repository.name} MVP Summary Report`,
+        summary: `A comprehensive overview of the ${repository.name} repository with ${pullRequests.length} pull requests.`,
+        sections: [
+          {
+            title: "Repository Overview",
+            content: `This repository contains ${repositoryData.summary.completedFeatures} completed features and ${repositoryData.summary.activeFeatures} features in development.`,
+            items: [
+              `Total Pull Requests: ${repositoryData.repository.totalPRs}`,
+              `Merged PRs: ${repositoryData.repository.mergedPRs}`,
+              `Open PRs: ${repositoryData.repository.openPRs}`,
+              `Contributors: ${repositoryData.summary.totalContributors}`
+            ]
+          }
+        ],
+        recommendations: [
+          "Continue regular development and code review practices",
+          "Monitor open pull requests for timely reviews"
+        ]
+      };
+      // const content = await geminiService.generateRepositoryReportContent(
+      //   repositoryData, 
+      //   reportType,
+      //   templateId ? await storage.getReportTemplate(templateId) : undefined
+      // );
+
+      // Create repository report record
+      const report = await storage.createRepositoryReport({
+        repositoryId: req.params.id,
+        reportType,
+        title: title || `${repository.name} MVP Summary Report`,
+        content,
+        templateId
+      });
+
+      // Generate PDF
+      const pdfPath = await pdfService.generatePDF(report.id, content, 'repository');
+      
+      // Update report with PDF path
+      const updatedReport = await storage.updateRepositoryReport(report.id, { pdfPath });
+
+      res.json(updatedReport || report);
+    } catch (error) {
+      console.error("Error generating repository report:", error);
+      res.status(500).json({ message: "Failed to generate repository report" });
+    }
+  });
+
+  // Get repository reports
+  app.get("/api/repositories/:id/reports", async (req, res) => {
+    try {
+      const reports = await storage.getRepositoryReports(req.params.id);
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching repository reports:", error);
+      res.status(500).json({ message: "Failed to fetch repository reports" });
+    }
+  });
+
+  // Get all repository reports
+  app.get("/api/repository-reports", async (req, res) => {
+    try {
+      const reports = await storage.getAllRepositoryReports();
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching all repository reports:", error);
+      res.status(500).json({ message: "Failed to fetch repository reports" });
     }
   });
 
