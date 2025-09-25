@@ -228,6 +228,9 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
           <table className="w-full">
             <thead className="bg-muted/50">
               <tr>
+                <th className="text-center px-3 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Risk
+                </th>
                 <th className="text-left px-6 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">
                   Pull Request
                 </th>
@@ -256,15 +259,15 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
                 
                 return (
                   <tr key={pr.id} className="hover:bg-muted/30 transition-colors" data-testid={`pr-row-${pr.number}`}>
+                    <td className="px-3 py-4 text-center">
+                      <div className="flex justify-center">
+                        {getRiskIcon(riskLevel)}
+                      </div>
+                    </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex-shrink-0">
-                          {getRiskIcon(riskLevel)}
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{pr.title}</p>
-                          <p className="text-xs text-muted-foreground font-mono">#{pr.number}</p>
-                        </div>
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{pr.title}</p>
+                        <p className="text-xs text-muted-foreground font-mono">#{pr.number}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">
