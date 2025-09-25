@@ -4,10 +4,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
+import type { ReportTemplate } from "@shared/schema";
 
 interface PullRequest {
   id: string;
@@ -33,6 +35,11 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
   const [selectedRepo, setSelectedRepo] = useState<string>("all");
   const [generatingReports, setGeneratingReports] = useState<Set<string>>(new Set());
   const { toast } = useToast();
+
+  // Fetch available templates
+  const { data: templates = [] } = useQuery<ReportTemplate[]>({
+    queryKey: ["/api/report-templates"],
+  });
 
   const getStatusBadge = (status: string, reviewStatus: string | null) => {
     if (status === "merged") {
@@ -94,7 +101,7 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
     }
   };
 
-  const handleGenerateReport = async (prId: string, audienceTypes: string | string[]) => {
+  const handleGenerateReport = async (prId: string, audienceTypes: string | string[], templateId?: string) => {
     setGeneratingReports(prev => new Set(prev).add(prId));
     
     try {
@@ -102,7 +109,11 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
       
       // Generate reports for all requested audience types
       for (const audienceType of typesToGenerate) {
-        await apiRequest("POST", `/api/pull-requests/${prId}/reports`, { audienceType });
+        const requestBody: { audienceType: string; templateId?: string } = { audienceType };
+        if (templateId) {
+          requestBody.templateId = templateId;
+        }
+        await apiRequest("POST", `/api/pull-requests/${prId}/reports`, requestBody);
       }
       
       await queryClient.invalidateQueries({ queryKey: ["/api/pull-requests"] });
@@ -178,6 +189,15 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
     const previewUrl = `/api/reports/${reportId}/preview`;
     window.open(previewUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
   };
+
+  // Group templates by audience type
+  const templatesByType = templates.reduce((acc, template) => {
+    if (!acc[template.audienceType]) {
+      acc[template.audienceType] = [];
+    }
+    acc[template.audienceType].push(template);
+    return acc;
+  }, {} as Record<string, ReportTemplate[]>);
 
   const uniqueRepos = Array.from(new Set(pullRequests.map(pr => pr.repository.name)));
   
@@ -325,30 +345,73 @@ export default function RecentPullRequests({ pullRequests, isLoading }: RecentPu
                               <ChevronDown className="ml-1 h-3 w-3" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="w-64">
+                            {/* PM Reports Section */}
+                            <DropdownMenuLabel>Project Manager Reports</DropdownMenuLabel>
                             <DropdownMenuItem 
                               onClick={() => handleGenerateReport(pr.id, "pm")}
-                              data-testid={`menu-generate-pm-${pr.number}`}
+                              data-testid={`menu-generate-pm-default-${pr.number}`}
                             >
-                              Generate PM Report
+                              Default PM Report
                             </DropdownMenuItem>
+                            {templatesByType["pm"]?.map((template) => (
+                              <DropdownMenuItem 
+                                key={template.id}
+                                onClick={() => handleGenerateReport(pr.id, "pm", template.id)}
+                                data-testid={`menu-generate-pm-template-${template.id}-${pr.number}`}
+                              >
+                                📋 {template.name}
+                              </DropdownMenuItem>
+                            ))}
+                            
+                            <DropdownMenuSeparator />
+                            
+                            {/* QA Reports Section */}
+                            <DropdownMenuLabel>QA Team Reports</DropdownMenuLabel>
                             <DropdownMenuItem 
                               onClick={() => handleGenerateReport(pr.id, "qa")}
-                              data-testid={`menu-generate-qa-${pr.number}`}
+                              data-testid={`menu-generate-qa-default-${pr.number}`}
                             >
-                              Generate QA Report
+                              Default QA Report
                             </DropdownMenuItem>
+                            {templatesByType["qa"]?.map((template) => (
+                              <DropdownMenuItem 
+                                key={template.id}
+                                onClick={() => handleGenerateReport(pr.id, "qa", template.id)}
+                                data-testid={`menu-generate-qa-template-${template.id}-${pr.number}`}
+                              >
+                                🧪 {template.name}
+                              </DropdownMenuItem>
+                            ))}
+                            
+                            <DropdownMenuSeparator />
+                            
+                            {/* Client Reports Section */}
+                            <DropdownMenuLabel>Client Reports</DropdownMenuLabel>
                             <DropdownMenuItem 
                               onClick={() => handleGenerateReport(pr.id, "client")}
-                              data-testid={`menu-generate-client-${pr.number}`}
+                              data-testid={`menu-generate-client-default-${pr.number}`}
                             >
-                              Generate Client Report
+                              Default Client Report
                             </DropdownMenuItem>
+                            {templatesByType["client"]?.map((template) => (
+                              <DropdownMenuItem 
+                                key={template.id}
+                                onClick={() => handleGenerateReport(pr.id, "client", template.id)}
+                                data-testid={`menu-generate-client-template-${template.id}-${pr.number}`}
+                              >
+                                👤 {template.name}
+                              </DropdownMenuItem>
+                            ))}
+                            
+                            <DropdownMenuSeparator />
+                            
+                            {/* Generate All Option */}
                             <DropdownMenuItem 
                               onClick={() => handleGenerateReport(pr.id, ["pm", "qa", "client"])}
                               data-testid={`menu-generate-all-${pr.number}`}
                             >
-                              Generate All Reports
+                              🚀 Generate All Default Reports
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
