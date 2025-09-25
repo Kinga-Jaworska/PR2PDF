@@ -520,6 +520,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Repository report preview
+  app.get("/api/repositories/reports/:id/preview", async (req, res) => {
+    try {
+      const report = await storage.getRepositoryReport(req.params.id);
+      if (!report || !report.content) {
+        return res.status(404).json({ message: "Repository report not found" });
+      }
+
+      // Regenerate HTML with emoji replacements from stored content
+      if (typeof report.content === 'object' && 'title' in report.content) {
+        try {
+          // Use PDF service to generate HTML with emoji replacements
+          const html = await pdfService.generateHTML(report.id, report.content as any, 'repository');
+          res.setHeader('Content-Type', 'text/html');
+          return res.send(html);
+        } catch (htmlError) {
+          console.error("Error regenerating HTML for repository report preview:", htmlError);
+          // Fall back to original file-based approach if regeneration fails
+        }
+      }
+
+      // Fallback: serve existing HTML file if regeneration fails
+      const htmlPath = report.pdfPath ? 
+        (report.pdfPath.endsWith('.pdf') ? report.pdfPath.replace('.pdf', '.html') : report.pdfPath) :
+        null;
+      
+      if (htmlPath && fs.existsSync(htmlPath)) {
+        res.setHeader('Content-Type', 'text/html');
+        return res.sendFile(htmlPath, { root: '/' });
+      }
+
+      return res.status(404).json({ message: "Repository report preview file not found" });
+    } catch (error) {
+      console.error("Error previewing repository report:", error);
+      res.status(500).json({ message: "Failed to preview repository report" });
+    }
+  });
+
+  // Repository report download
+  app.get("/api/repositories/reports/:id/download", async (req, res) => {
+    try {
+      const report = await storage.getRepositoryReport(req.params.id);
+      if (!report || !report.pdfPath) {
+        return res.status(404).json({ message: "Repository report not found" });
+      }
+
+      // Check if we have a valid PDF file
+      const hasPdf = report.pdfPath.endsWith('.pdf') && fs.existsSync(report.pdfPath);
+      
+      if (!hasPdf) {
+        // Legacy report or PDF doesn't exist - try to regenerate from content
+        if (report.content && typeof report.content === 'object' && 'title' in report.content) {
+          try {
+            // Regenerate PDF from existing content
+            const pdfPath = await pdfService.generatePDF(report.id, report.content as any, 'repository');
+            await storage.updateRepositoryReport(report.id, { pdfPath });
+            
+            // Now serve the PDF
+            const filename = `repository-report-${report.id}-${report.reportType}.pdf`;
+            res.setHeader('Content-Type', 'application/pdf');
+            return res.download(pdfPath, filename);
+          } catch (pdfError) {
+            console.error("Error regenerating repository report PDF:", pdfError);
+            // Fall back to HTML if PDF generation fails
+            const htmlPath = report.pdfPath.endsWith('.html') ? report.pdfPath : report.pdfPath.replace('.pdf', '.html');
+            if (fs.existsSync(htmlPath)) {
+              const filename = `repository-report-${report.id}-${report.reportType}.html`;
+              res.setHeader('Content-Type', 'text/html');
+              return res.download(htmlPath, filename);
+            } else {
+              return res.status(404).json({ message: "Repository report file not found" });
+            }
+          }
+        } else {
+          // No content to regenerate from, try to serve HTML if it exists
+          const htmlPath = report.pdfPath.endsWith('.html') ? report.pdfPath : report.pdfPath.replace('.pdf', '.html');
+          if (fs.existsSync(htmlPath)) {
+            const filename = `repository-report-${report.id}-${report.reportType}.html`;
+            res.setHeader('Content-Type', 'text/html');
+            return res.download(htmlPath, filename);
+          } else {
+            return res.status(404).json({ message: "Repository report file not found" });
+          }
+        }
+      }
+
+      // Set proper filename for download - now as PDF
+      const filename = `repository-report-${report.id}-${report.reportType}.pdf`;
+      
+      // Set proper content type for PDF
+      res.setHeader('Content-Type', 'application/pdf');
+      res.download(report.pdfPath, filename);
+    } catch (error) {
+      console.error("Error downloading repository report:", error);
+      res.status(500).json({ message: "Failed to download repository report" });
+    }
+  });
+
   // Preview report (inline HTML)
   app.get("/api/reports/:id/preview", async (req, res) => {
     try {
