@@ -3,9 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FileText, Download, Eye, Calendar, User, GitPullRequest } from "lucide-react";
+import { FileText, Download, Eye, Calendar, User, GitPullRequest, Building } from "lucide-react";
 import { format } from "date-fns";
-import type { Report, PullRequest, Repository } from "@shared/schema";
+import type { Report, PullRequest, Repository, RepositoryReport } from "@shared/schema";
 
 type ReportWithDetails = Report & {
   pullRequest: PullRequest & {
@@ -13,10 +13,20 @@ type ReportWithDetails = Report & {
   };
 };
 
+type RepositoryReportWithDetails = RepositoryReport & {
+  repository: Repository;
+};
+
 export default function ReportsPage() {
-  const { data: reports, isLoading } = useQuery<ReportWithDetails[]>({
+  const { data: reports, isLoading: reportsLoading } = useQuery<ReportWithDetails[]>({
     queryKey: ["/api/reports"],
   });
+
+  const { data: repositoryReports, isLoading: repositoryReportsLoading } = useQuery<RepositoryReportWithDetails[]>({
+    queryKey: ["/api/repositories/reports"],
+  });
+
+  const isLoading = reportsLoading || repositoryReportsLoading;
 
   const getAudienceColor = (audienceType: string) => {
     switch (audienceType) {
@@ -86,6 +96,46 @@ export default function ReportsPage() {
     window.open(previewUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
   };
 
+  const handleRepositoryReportDownload = async (reportId: string) => {
+    try {
+      const response = await fetch(`/api/repositories/reports/${reportId}/download`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = `repository-report-${reportId}.pdf`;
+        
+        if (contentDisposition) {
+          const matches = contentDisposition.match(/filename="([^"]+)"/);
+          if (matches) {
+            filename = matches[1];
+          }
+        } else {
+          const contentType = response.headers.get('Content-Type');
+          if (contentType?.includes('text/html')) {
+            filename = `repository-report-${reportId}.html`;
+          }
+        }
+        
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    } catch (error) {
+      console.error("Repository report download failed:", error);
+    }
+  };
+
+  const handleRepositoryReportPreview = (reportId: string) => {
+    const previewUrl = `/api/repositories/reports/${reportId}/preview`;
+    window.open(previewUrl, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+  };
+
   if (isLoading) {
     return (
       <div className="container mx-auto px-6 py-6 space-y-6">
@@ -119,24 +169,95 @@ export default function ReportsPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Generated Reports</h1>
           <p className="text-muted-foreground">
-            All AI-generated reports for your pull requests ({reports?.length || 0} total)
+            All AI-generated reports for your pull requests and repositories ({(reports?.length || 0) + (repositoryReports?.length || 0)} total)
           </p>
         </div>
       </div>
 
-      {!reports || reports.length === 0 ? (
+      {(!reports || reports.length === 0) && (!repositoryReports || repositoryReports.length === 0) ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileText className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold text-foreground mb-2">No reports generated yet</h3>
             <p className="text-muted-foreground text-center max-w-md">
-              Generate your first report by going to the Pull Requests tab and clicking "Generate Report" on any pull request.
+              Generate your first report by going to the Pull Requests tab for PR reports or the Dashboard for repository reports.
             </p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
-          {reports.map((report) => (
+          {/* Repository Reports */}
+          {repositoryReports?.map((report) => (
+            <Card key={`repo-${report.id}`} className="hover:shadow-md transition-shadow" data-testid={`repository-report-${report.id}`}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-300" data-testid={`badge-${report.reportType}`}>
+                        <Building className="h-3 w-3 mr-1" />
+                        {report.reportType === 'mvp_summary' ? 'MVP Summary' : 'Client Overview'}
+                      </Badge>
+                    </div>
+                    <CardTitle className="text-lg" data-testid="repository-report-title">
+                      {report.repository.name} - Repository Report
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-4 text-sm">
+                      <span className="flex items-center gap-1">
+                        <Building className="h-4 w-4" />
+                        Repository
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        {format(new Date(report.generatedAt!), "MMM d, yyyy 'at' h:mm a")}
+                      </span>
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRepositoryReportDownload(report.id)}
+                      data-testid={`button-download-repo-${report.id}`}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRepositoryReportPreview(report.id)}
+                      data-testid={`button-preview-repo-${report.id}`}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground mb-1">Repository</p>
+                    <p className="text-sm text-muted-foreground font-mono" data-testid="repo-name">
+                      {report.repository.name}
+                    </p>
+                  </div>
+                  
+                  {typeof report.content === 'object' && report.content && 'summary' in report.content && (
+                    <div>
+                      <p className="text-sm font-medium text-foreground mb-1">Summary</p>
+                      <p className="text-sm text-muted-foreground line-clamp-2" data-testid="repository-report-summary">
+                        {(report.content as any).summary}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {/* Pull Request Reports */}
+          {reports?.map((report) => (
             <Card key={report.id} className="hover:shadow-md transition-shadow" data-testid={`report-${report.id}`}>
               <CardHeader>
                 <div className="flex items-start justify-between">
