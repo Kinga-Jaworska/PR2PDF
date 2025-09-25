@@ -1,0 +1,163 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QA Analysis for Road Sign Detection and Testing Framework PR</title>
+    <style>
+        body {
+            font-family: 'Arial', 'DejaVu Sans', 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            border-bottom: 3px solid #4F46E5;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #4F46E5;
+            margin: 0;
+            font-size: 28px;
+        }
+        .audience-badge {
+            background: #4F46E5;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        .summary {
+            background: #F8FAFC;
+            padding: 20px;
+            border-left: 4px solid #4F46E5;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin-bottom: 25px;
+        }
+        .section h2 {
+            color: #1E293B;
+            border-bottom: 2px solid #E2E8F0;
+            padding-bottom: 5px;
+        }
+        .test-scenarios {
+            background: #FEF3C7;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #F59E0B;
+        }
+        .recommendations {
+            background: #ECFDF5;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #10B981;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #E2E8F0;
+            text-align: center;
+            color: #6B7280;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>QA Analysis for Road Sign Detection and Testing Framework PR</h1>
+        <span class="audience-badge">Report for Quality Assurance</span>
+    </div>
+
+    <div class="summary">
+        <h2>Executive Summary</h2>
+        <p>This pull request introduces a significant enhancement to the application by establishing a formal testing framework with unit, instrumented, and UI tests using Espresso and Mockito. Concurrently, it involves a major refactoring of the core `DetectorActivity` and `objectDetector` components, including a switch to a GPU delegate for model inference and changes to image normalization. From a QA perspective, this necessitates a comprehensive testing strategy focusing on the newly implemented features, the integrity of refactored logic, and potential performance and accuracy regressions.</p>
+    </div>
+
+    
+        <div class="section">
+            <h2>Testing Strategy Overview</h2>
+            <p>The testing strategy should be a hybrid approach, combining the newly added automated tests with rigorous manual and exploratory testing. The primary focus will be on the high-risk areas identified in the refactored code. The strategy involves:</p>
+            
+                <ul>
+                    <li>Leveraging and expanding the new Espresso UI tests to cover all user flows and option combinations.</li><li>Executing targeted functional tests on the core features: sign detection, user feedback (visual, audio, haptic), speed monitoring, and silent mode.</li><li>Conducting non-functional testing to validate performance, stability, and resource consumption, especially concerning the new GPU delegate.</li><li>Performing extensive regression testing on the entire detection pipeline to ensure the refactoring and normalization changes have not negatively impacted accuracy.</li><li>Validating all integration points, particularly with Firebase services (Model Downloader, Database) and Android system services (Location, Audio, TTS).</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Functional Testing Requirements</h2>
+            <p>Functional testing must validate that all features described in the README and implemented in the code work as expected across various conditions.</p>
+            
+                <ul>
+                    <li>**Options Configuration:** Verify that all toggles on the `MainActivity` (Text/Image, Speech, Vibration, Speed, Silent Mode) correctly enable or disable their respective features in `DetectorActivity`.</li><li>**Input Validation:** Test the new logic that requires at least one of the primary feedback mechanisms (Text/Image, Speech, or Vibration) to be selected before starting the detector.</li><li>**Sign Detection:** Confirm that the app correctly identifies a variety of road signs in real-time. Test both the current detection display and the 'previous detection' history feature.</li><li>**Feedback Mechanisms:** Individually and in combination, test the visual (text/image), audio (Text-to-Speech), and haptic (vibration for prohibition signs) feedback systems.</li><li>**Speed Monitoring:** Validate the accuracy of the speed measurement feature against a reliable GPS source. Test the speed limit warning functionality (e.g., >50 km/h in a 'teren zabudowany' zone).</li><li>**Silent Mode:** Test the silent mode's ability to mute notifications and calls while the detector is active.</li><li>**Error Handling:** Verify that the application gracefully handles errors such as missing TTS language packs, failed model downloads, denied permissions, and poor GPS signal, presenting appropriate alerts to the user.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Non-functional Testing Considerations</h2>
+            <p>Beyond core functionality, the app's performance and usability are critical for a positive user experience, especially given its real-time processing nature.</p>
+            
+                <ul>
+                    <li>**Performance Testing:** Profile the application during active detection to measure CPU/GPU usage, memory consumption, and battery drain. Establish a baseline to ensure the GPU delegate provides a net performance benefit without causing excessive heat or battery loss. Measure detection latency/FPS.</li><li>**Security Testing:** Verify that all requested permissions (Camera, Location, Notification Policy, Vibrate) are necessary and used appropriately. Confirm that the app handles permission denial gracefully at any point in the user flow. Assess the integrity of the model download process from Firebase.</li><li>**Usability Testing (UAT):** Evaluate the app's performance under diverse environmental conditions (e.g., low light, night, rain, sun glare). Assess the clarity of the Text-to-Speech announcements and the noticeability of the vibration feedback. Test with partially obscured, faded, or non-standard signs to understand the model's limitations.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Test Environment Setup Needs</h2>
+            <p>A diverse test environment is required to ensure broad compatibility and robustness.</p>
+            
+                <ul>
+                    <li>**Hardware:** A range of real Android devices with varying specifications (CPU, GPU support, RAM, camera quality) and running different OS versions (Android 9-11, API 28-30).</li><li>**Software:** Android Studio Profiler for performance monitoring. A mock location provider app for simulating movement and testing speed-related features.</li><li>**Connectivity:** Ability to test with and without Wi-Fi and cellular data to validate offline behavior and error handling for Firebase connections.</li><li>**Physical Setup:** A controlled environment with high-quality images, videos, or physical mock-ups of various Polish road signs to test detection accuracy systematically.</li>
+                </ul>
+            
+        </div>
+    
+        <div class="section">
+            <h2>Risk-based Testing Prioritization</h2>
+            <p>Testing efforts should be prioritized based on the risk and impact of the changes.</p>
+            
+                <ul>
+                    <li>**High Priority:** `objectDetector.java` - The change in image normalization logic (dividing by 255.0f) is a critical risk to model accuracy and requires immediate, thorough regression testing with a curated dataset.</li><li>**High Priority:** `DetectorActivity.java` - As the central hub for all features, its extensive refactoring makes it susceptible to integration bugs. End-to-end testing of all feature combinations is crucial.</li><li>**Medium Priority:** Performance on devices with and without strong GPU support. The GPU delegate could introduce instability or performance degradation on some chipsets.</li><li>**Medium Priority:** Error handling and permissions flows. These are critical for a stable user experience and must be tested for all edge cases.</li><li>**Low Priority:** Minor UI changes in layout XML files and resource modifications.</li>
+                </ul>
+            
+        </div>
+    
+
+    
+        <div class="test-scenarios">
+            <h2>■ Recommended Test Scenarios</h2>
+            <ul>
+                <li>Verify that attempting to start the detector with 'Text/Image', 'Speech', and 'Vibration' switches all turned off displays the 'Wybierz przynajmniej jedną z pierwszych trzech opcji' toast and prevents navigation.</li><li>Launch the app with the 'Speed' option enabled but location permission denied. Verify the app displays the 'Nie udzielono dostępu do lokalizacji' alert and does not crash.</li><li>Enable 'Silent Mode', start the detector, and simulate an incoming call. Verify the device's ringer is silenced as per the `adjustAudio` logic.</li><li>On a device without the Polish TTS language pack, enable the 'Speech' option and start the detector. Verify the app correctly displays the alert prompting the user to install the language pack.</li><li>Enable the 'Vibration' option and present a 'Zakaz wjazdu' (No Entry) sign. Verify the sign is correctly identified and the device vibrates.</li><li>Using a mock location provider, simulate a speed of 65 km/h and present a 'Teren zabudowany' (Built-up Area) sign. Verify the UI visually indicates a speed limit violation.</li><li>Clear app data and launch for the first time with no internet connection. Verify a user-friendly error message is displayed regarding the failure to download the model or labels.</li><li>With the detector running, use Android Profiler to monitor CPU and GPU usage for 5 minutes. Record the average FPS and check for memory leaks or excessive battery drain.</li><li>While simulating movement, present sign A, then quickly switch to sign B. Verify sign A moves to the 'previous sign' display when sign B becomes the current detection.</li><li>Test sign detection in a low-light environment to determine the operational limits of the camera and model.</li><li>In `DetectorActivity`, toggle the camera mode button. Verify the background correctly switches between the gradient and the transparent camera feed without performance degradation.</li><li>Regression Test: Run detection on a pre-defined set of 20 road sign images and verify that the detection accuracy is within an acceptable threshold, confirming the new normalization logic works as intended.</li>
+            </ul>
+        </div>
+    
+
+    
+        <div class="recommendations">
+            <h2>★ Recommendations</h2>
+            <ul>
+                <li>Establish a 'golden dataset' of standard road sign images to create an automated regression test for detection accuracy. This will be vital for validating future model updates or changes to the processing pipeline.</li><li>Expand unit tests in `UnitTest.java` to cover more logic within `DetectorActivity`, such as the conditions for speed limit warnings and parsing sign data.</li><li>Implement performance benchmarks to run with each build, automatically flagging significant regressions in FPS, memory usage, or battery consumption.</li>
+            </ul>
+        </div>
+    
+
+    <div class="footer">
+        <p>Generated by PR Insight • 9/25/2025</p>
+    </div>
+</body>
+</html>
