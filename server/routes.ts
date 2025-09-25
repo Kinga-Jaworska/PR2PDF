@@ -5,7 +5,7 @@ import { storage } from "./storage";
 import { githubService } from "./services/github";
 import { geminiService } from "./services/gemini";
 import { pdfService } from "./services/pdf";
-import { insertRepositorySchema, insertReportSchema, insertReportTemplateSchema } from "@shared/schema";
+import { insertRepositorySchema, insertReportSchema, insertReportTemplateSchema, insertRepositoryReportSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -91,7 +91,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.createPullRequest(pr);
         }
         
-        return res.json(repository);
+        // Sanitize response to exclude GitHub token
+        const safeRepository = {
+          id: repository.id,
+          name: repository.name,
+          fullName: repository.fullName,
+          description: repository.description,
+          createdAt: repository.createdAt,
+          updatedAt: repository.updatedAt,
+        };
+        return res.json(safeRepository);
       }
       
       // Normal mode: Test GitHub token and repository access
@@ -114,7 +123,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't fail repository creation if sync fails
       }
 
-      res.json(repository);
+      // Sanitize response to exclude GitHub token
+      const safeRepository = {
+        id: repository.id,
+        name: repository.name,
+        fullName: repository.fullName,
+        description: repository.description,
+        createdAt: repository.createdAt,
+        updatedAt: repository.updatedAt,
+      };
+      res.json(safeRepository);
     } catch (error) {
       console.error("Error creating repository:", error);
       if (error instanceof z.ZodError) {
@@ -161,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Sync pull requests for a repository
   app.post("/api/repositories/:id/sync", async (req, res) => {
     try {
-      const repository = await storage.getRepository(req.params.id);
+      const repository = await storage.getRepositoryWithToken(req.params.id);
       if (!repository) {
         return res.status(404).json({ message: "Repository not found" });
       }
@@ -208,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Pull request not found" });
       }
 
-      const repository = await storage.getRepository(pullRequest.repositoryId);
+      const repository = await storage.getRepositoryWithToken(pullRequest.repositoryId);
       if (!repository) {
         return res.status(404).json({ message: "Repository not found" });
       }
@@ -313,6 +331,290 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating report:", error);
       res.status(500).json({ message: "Failed to generate report" });
+    }
+  });
+
+  // Repository report generation
+  app.post("/api/repositories/:id/reports", async (req, res) => {
+    try {
+      const { reportType = "mvp_summary", title, templateId } = req.body;
+      
+      const repository = await storage.getRepositoryWithToken(req.params.id);
+      if (!repository) {
+        return res.status(404).json({ message: "Repository not found" });
+      }
+
+      // Get all pull requests for the repository
+      const pullRequests = await storage.getPullRequestsByRepository(req.params.id);
+      if (pullRequests.length === 0) {
+        return res.status(400).json({ message: "No pull requests found for repository. Please sync the repository first." });
+      }
+
+      // Check if this is a demo repository
+      const isDemoRepo = repository.githubToken === "demo-token-not-real" || 
+                        repository.fullName.toLowerCase().includes("demo") ||
+                        repository.githubToken === "demo" || 
+                        repository.githubToken === "test";
+
+      // Create repository summary data for report generation
+      const repositoryData = {
+        repository: {
+          name: repository.name,
+          fullName: repository.fullName,
+          totalPRs: pullRequests.length,
+          openPRs: pullRequests.filter(pr => pr.status === 'open').length,
+          closedPRs: pullRequests.filter(pr => pr.status === 'closed').length,
+          mergedPRs: pullRequests.filter(pr => pr.status === 'merged').length,
+        },
+        pullRequests: pullRequests.map(pr => ({
+          number: pr.number,
+          title: pr.title,
+          author: pr.authorName,
+          status: pr.status,
+          reviewStatus: pr.reviewStatus || undefined,
+          createdAt: pr.createdAt,
+          updatedAt: pr.updatedAt,
+          mergedAt: pr.mergedAt
+        })),
+        summary: {
+          activeFeatures: pullRequests.filter(pr => pr.status === 'open').length,
+          completedFeatures: pullRequests.filter(pr => pr.status === 'merged').length,
+          totalContributors: Array.from(new Set(pullRequests.map(pr => pr.authorName))).length,
+          lastActivity: pullRequests.length > 0 ? pullRequests[0].updatedAt : new Date()
+        }
+      };
+
+      // Generate repository report content using Gemini AI
+      const content = await geminiService.generateRepositoryReportContent(
+        repositoryData, 
+        reportType,
+        templateId ? await storage.getReportTemplate(templateId) : undefined
+      );
+
+      // Create repository report record
+      const report = await storage.createRepositoryReport({
+        repositoryId: req.params.id,
+        reportType,
+        title: title || `${repository.name} MVP Summary Report`,
+        content,
+        templateId
+      });
+
+      // Generate PDF
+      const pdfPath = await pdfService.generatePDF(report.id, content, 'repository');
+      
+      // Update report with PDF path
+      const updatedReport = await storage.updateRepositoryReport(report.id, { pdfPath });
+
+      res.json(updatedReport || report);
+    } catch (error) {
+      console.error("Error generating repository report:", error);
+      res.status(500).json({ message: "Failed to generate repository report" });
+    }
+  });
+
+  // Repository report generation (frontend-compatible endpoint)
+  app.post("/api/repositories/reports", async (req, res) => {
+    try {
+      const { repositoryId, reportType = "mvp_summary", title, templateId } = req.body;
+      
+      if (!repositoryId) {
+        return res.status(400).json({ message: "Repository ID is required" });
+      }
+      
+      const repository = await storage.getRepositoryWithToken(repositoryId);
+      if (!repository) {
+        return res.status(404).json({ message: "Repository not found" });
+      }
+
+      // Get all pull requests for the repository
+      const pullRequests = await storage.getPullRequestsByRepository(repositoryId);
+      if (pullRequests.length === 0) {
+        return res.status(400).json({ message: "No pull requests found for repository. Please sync the repository first." });
+      }
+
+      // Check if this is a demo repository
+      const isDemoRepo = repository.githubToken === "demo-token-not-real" || 
+                        repository.fullName.toLowerCase().includes("demo") ||
+                        repository.githubToken === "demo" || 
+                        repository.githubToken === "test";
+
+      // Create repository summary data for report generation
+      const repositoryData = {
+        repository: {
+          name: repository.name,
+          fullName: repository.fullName,
+          totalPRs: pullRequests.length,
+          openPRs: pullRequests.filter(pr => pr.status === 'open').length,
+          closedPRs: pullRequests.filter(pr => pr.status === 'closed').length,
+          mergedPRs: pullRequests.filter(pr => pr.status === 'merged').length,
+        },
+        pullRequests: pullRequests.map(pr => ({
+          number: pr.number,
+          title: pr.title,
+          author: pr.authorName,
+          status: pr.status,
+          reviewStatus: pr.reviewStatus || undefined,
+          createdAt: pr.createdAt,
+          updatedAt: pr.updatedAt,
+          mergedAt: pr.mergedAt
+        })),
+        summary: {
+          activeFeatures: pullRequests.filter(pr => pr.status === 'open').length,
+          completedFeatures: pullRequests.filter(pr => pr.status === 'merged').length,
+          totalContributors: Array.from(new Set(pullRequests.map(pr => pr.authorName))).length,
+          lastActivity: pullRequests.length > 0 ? pullRequests[0].updatedAt : new Date()
+        }
+      };
+
+      // Generate repository report content using Gemini AI
+      const content = await geminiService.generateRepositoryReportContent(
+        repositoryData, 
+        reportType,
+        templateId ? await storage.getReportTemplate(templateId) : undefined
+      );
+
+      // Create repository report record
+      const report = await storage.createRepositoryReport({
+        repositoryId,
+        reportType,
+        title: title || `${repository.name} MVP Summary Report`,
+        content,
+        templateId
+      });
+
+      // Generate PDF
+      const pdfPath = await pdfService.generatePDF(report.id, content, 'repository');
+      
+      // Update report with PDF path
+      const updatedReport = await storage.updateRepositoryReport(report.id, { pdfPath });
+
+      // Sanitize response to exclude GitHub token if repository object is included
+      const safeReport = updatedReport || report;
+      res.json(safeReport);
+    } catch (error) {
+      console.error("Error generating repository report:", error);
+      res.status(500).json({ message: "Failed to generate repository report" });
+    }
+  });
+
+  // Get repository reports
+  app.get("/api/repositories/:id/reports", async (req, res) => {
+    try {
+      const reports = await storage.getRepositoryReports(req.params.id);
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching repository reports:", error);
+      res.status(500).json({ message: "Failed to fetch repository reports" });
+    }
+  });
+
+  // Get all repository reports
+  app.get("/api/repository-reports", async (req, res) => {
+    try {
+      const reports = await storage.getAllRepositoryReports();
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching all repository reports:", error);
+      res.status(500).json({ message: "Failed to fetch repository reports" });
+    }
+  });
+
+  // Repository report preview
+  app.get("/api/repositories/reports/:id/preview", async (req, res) => {
+    try {
+      const report = await storage.getRepositoryReport(req.params.id);
+      if (!report || !report.content) {
+        return res.status(404).json({ message: "Repository report not found" });
+      }
+
+      // Regenerate HTML with emoji replacements from stored content
+      if (typeof report.content === 'object' && 'title' in report.content) {
+        try {
+          // Use PDF service to generate HTML with emoji replacements
+          const html = await pdfService.generateHTML(report.id, report.content as any, 'repository');
+          res.setHeader('Content-Type', 'text/html');
+          return res.send(html);
+        } catch (htmlError) {
+          console.error("Error regenerating HTML for repository report preview:", htmlError);
+          // Fall back to original file-based approach if regeneration fails
+        }
+      }
+
+      // Fallback: serve existing HTML file if regeneration fails
+      const htmlPath = report.pdfPath ? 
+        (report.pdfPath.endsWith('.pdf') ? report.pdfPath.replace('.pdf', '.html') : report.pdfPath) :
+        null;
+      
+      if (htmlPath && fs.existsSync(htmlPath)) {
+        res.setHeader('Content-Type', 'text/html');
+        return res.sendFile(htmlPath, { root: '/' });
+      }
+
+      return res.status(404).json({ message: "Repository report preview file not found" });
+    } catch (error) {
+      console.error("Error previewing repository report:", error);
+      res.status(500).json({ message: "Failed to preview repository report" });
+    }
+  });
+
+  // Repository report download
+  app.get("/api/repositories/reports/:id/download", async (req, res) => {
+    try {
+      const report = await storage.getRepositoryReport(req.params.id);
+      if (!report || !report.pdfPath) {
+        return res.status(404).json({ message: "Repository report not found" });
+      }
+
+      // Check if we have a valid PDF file
+      const hasPdf = report.pdfPath.endsWith('.pdf') && fs.existsSync(report.pdfPath);
+      
+      if (!hasPdf) {
+        // Legacy report or PDF doesn't exist - try to regenerate from content
+        if (report.content && typeof report.content === 'object' && 'title' in report.content) {
+          try {
+            // Regenerate PDF from existing content
+            const pdfPath = await pdfService.generatePDF(report.id, report.content as any, 'repository');
+            await storage.updateRepositoryReport(report.id, { pdfPath });
+            
+            // Now serve the PDF
+            const filename = `repository-report-${report.id}-${report.reportType}.pdf`;
+            res.setHeader('Content-Type', 'application/pdf');
+            return res.download(pdfPath, filename);
+          } catch (pdfError) {
+            console.error("Error regenerating repository report PDF:", pdfError);
+            // Fall back to HTML if PDF generation fails
+            const htmlPath = report.pdfPath.endsWith('.html') ? report.pdfPath : report.pdfPath.replace('.pdf', '.html');
+            if (fs.existsSync(htmlPath)) {
+              const filename = `repository-report-${report.id}-${report.reportType}.html`;
+              res.setHeader('Content-Type', 'text/html');
+              return res.download(htmlPath, filename);
+            } else {
+              return res.status(404).json({ message: "Repository report file not found" });
+            }
+          }
+        } else {
+          // No content to regenerate from, try to serve HTML if it exists
+          const htmlPath = report.pdfPath.endsWith('.html') ? report.pdfPath : report.pdfPath.replace('.pdf', '.html');
+          if (fs.existsSync(htmlPath)) {
+            const filename = `repository-report-${report.id}-${report.reportType}.html`;
+            res.setHeader('Content-Type', 'text/html');
+            return res.download(htmlPath, filename);
+          } else {
+            return res.status(404).json({ message: "Repository report file not found" });
+          }
+        }
+      }
+
+      // Set proper filename for download - now as PDF
+      const filename = `repository-report-${report.id}-${report.reportType}.pdf`;
+      
+      // Set proper content type for PDF
+      res.setHeader('Content-Type', 'application/pdf');
+      res.download(report.pdfPath, filename);
+    } catch (error) {
+      console.error("Error downloading repository report:", error);
+      res.status(500).json({ message: "Failed to download repository report" });
     }
   });
 

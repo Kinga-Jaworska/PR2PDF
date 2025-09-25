@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import type { GitHubPRDetails } from "./github";
-import type { PullRequest, ReportTemplate } from "@shared/schema";
+import type { PullRequest, ReportTemplate, RepositoryReportInput } from "@shared/schema";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
@@ -189,6 +189,179 @@ Generate insights that will help the development team improve code quality and c
     } catch (error) {
       console.error("Error generating insights:", error);
       throw new Error(`Failed to generate insights: ${error}`);
+    }
+  }
+
+  async generateRepositoryReportContent(repositoryData: RepositoryReportInput, reportType: string, template?: ReportTemplate): Promise<ReportContent> {
+    try {
+      let systemPrompt: string;
+      if (template && template.templateContent && typeof template.templateContent === 'object') {
+        const content = template.templateContent as any;
+        systemPrompt = content.systemPrompt || this.getRepositorySystemPrompt(reportType);
+      } else {
+        systemPrompt = this.getRepositorySystemPrompt(reportType);
+      }
+      
+      const reportTypeDescription = reportType === "client_overview" 
+        ? "high-level client overview report" 
+        : "comprehensive MVP summary report for clients";
+      
+      const prompt = `
+Analyze the following repository and generate a comprehensive MVP summary report for clients:
+
+**Repository Information:**
+- Name: ${repositoryData.repository.name}
+- Full Name: ${repositoryData.repository.fullName}
+- Total Pull Requests: ${repositoryData.repository.totalPRs}
+- Open PRs: ${repositoryData.repository.openPRs}
+- Closed PRs: ${repositoryData.repository.closedPRs}
+- Merged PRs: ${repositoryData.repository.mergedPRs}
+
+**Development Summary:**
+- Active Features: ${repositoryData.summary.activeFeatures}
+- Completed Features: ${repositoryData.summary.completedFeatures}
+- Contributors: ${repositoryData.summary.totalContributors}
+- Last Activity: ${repositoryData.summary.lastActivity}
+
+**Recent Pull Requests:**
+${repositoryData.pullRequests.slice(0, 10).map((pr) => `
+- PR #${pr.number}: ${pr.title}
+  - Author: ${pr.author}
+  - Status: ${pr.status} ${pr.reviewStatus ? `(${pr.reviewStatus})` : ''}
+  - Created: ${pr.createdAt.toLocaleDateString()}
+  ${pr.mergedAt ? `- Merged: ${pr.mergedAt.toLocaleDateString()}` : ''}
+`).join('')}
+
+Generate a ${reportTypeDescription} that highlights:
+1. Overall project progress and achievements
+2. Key features delivered and in development
+3. Development velocity and team productivity
+4. Quality indicators and code review practices
+5. Upcoming milestones and deliverables
+6. Risk assessment and mitigation strategies
+
+${reportType === "mvp_summary" ? `
+The report sections must include:
+- Executive Summary highlighting key achievements
+- MVP Progress Overview with completion percentages
+- Feature Delivery Analysis with business impact
+- Development Quality Assessment
+- Team Performance Metrics
+- Risk Analysis and Mitigation Plans
+- Future Roadmap and Recommendations
+` : `
+The report sections must include:
+- Overall project health and status
+- Key deliverables and achievements
+- Business impact of completed features
+- Timeline adherence and delivery predictability
+- Quality assurance and testing coverage
+`}
+
+The report should be suitable for client presentation and demonstrate the value delivered.
+`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-pro",
+        config: {
+          systemInstruction: systemPrompt,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              summary: { type: "string" },
+              sections: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string" },
+                    content: { type: "string" },
+                    items: {
+                      type: "array",
+                      items: { type: "string" }
+                    }
+                  },
+                  required: ["title", "content"]
+                }
+              },
+              recommendations: {
+                type: "array",
+                items: { type: "string" }
+              },
+              testScenarios: {
+                type: "array",
+                items: { type: "string" }
+              }
+            },
+            required: ["title", "summary", "sections"]
+          }
+        },
+        contents: prompt,
+      });
+
+      const rawJson = response.text;
+      if (!rawJson) {
+        throw new Error("Empty response from Gemini");
+      }
+
+      const content: ReportContent = JSON.parse(rawJson);
+      return content;
+    } catch (error) {
+      console.error("Error generating repository report content:", error);
+      throw new Error(`Failed to generate repository report content: ${error}`);
+    }
+  }
+
+  private getRepositorySystemPrompt(reportType: string): string {
+    const basePrompt = `
+You are an expert project analyst specializing in repository analysis and client reporting.
+Generate a comprehensive, professional MVP summary report suitable for client presentation.
+`;
+
+    switch (reportType) {
+      case "mvp_summary":
+        return basePrompt + `
+Focus on CLIENT/STAKEHOLDER MVP perspective:
+- Business value and deliverable achievements
+- Feature completion status and progress
+- Development velocity and team performance
+- Quality metrics and code review practices  
+- Risk assessment and mitigation strategies
+- Upcoming milestones and next steps
+- ROI and success indicators
+
+Structure the report with:
+- Executive Summary highlighting key achievements
+- MVP Progress Overview with completion percentages
+- Feature Delivery Analysis with business impact
+- Development Quality Assessment
+- Team Performance Metrics
+- Risk Analysis and Mitigation Plans
+- Future Roadmap and Recommendations
+
+Make it client-friendly with business terminology and clear value propositions.
+`;
+
+      case "client_overview":
+        return basePrompt + `
+Focus on high-level CLIENT OVERVIEW perspective:
+- Overall project health and status
+- Key deliverables and achievements
+- Business impact of completed features
+- Timeline adherence and delivery predictability
+- Quality assurance and testing coverage
+- User feedback and satisfaction metrics
+
+Structure for executive consumption with clear business value.
+`;
+
+      default:
+        return basePrompt + `
+Provide a comprehensive repository analysis suitable for technical stakeholders and clients.
+Focus on project progress, quality metrics, and business value delivery.
+`;
     }
   }
 

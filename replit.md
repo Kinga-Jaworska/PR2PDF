@@ -12,11 +12,12 @@ Preferred communication style: Simple, everyday language.
 
 ### Frontend Architecture
 - **Framework**: React 18 with TypeScript and Vite for fast development
-- **UI Library**: shadcn/ui components built on Radix UI primitives
+- **UI Library**: shadcn/ui components built on Radix UI primitives with tabbed interfaces
 - **Styling**: Tailwind CSS with CSS variables for theming
 - **State Management**: TanStack Query for server state management
 - **Routing**: Wouter for lightweight client-side routing
 - **Form Handling**: React Hook Form with Zod validation
+- **Report Management**: Tabbed interface for filtering different report types
 
 ### Backend Architecture
 - **Runtime**: Node.js with Express.js framework
@@ -41,8 +42,9 @@ Preferred communication style: Simple, everyday language.
 
 ### AI Integration
 - **Provider**: Google Gemini AI for content generation
-- **Report Types**: Customized reports for PM, QA, and client audiences
+- **Report Types**: Customized reports for PM, QA, and client audiences, plus repository-level MVP summaries
 - **Content Structure**: Structured report generation with sections, recommendations, and test scenarios
+- **MVP Reports**: Dedicated AI-generated summaries for client presentations and project status updates
 
 ### Development Environment
 - **Build System**: Vite for frontend bundling and esbuild for backend compilation

@@ -60,10 +60,22 @@ export const reportTemplates = pgTable("report_templates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const repositoryReports = pgTable("repository_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  repositoryId: varchar("repository_id").notNull().references(() => repositories.id),
+  reportType: text("report_type").notNull(), // "mvp_summary", "client_overview", etc.
+  title: text("title").notNull(),
+  content: jsonb("content").notNull(), // Generated content from AI
+  pdfPath: text("pdf_path"),
+  templateId: varchar("template_id"), // Optional: reference to template used
+  generatedAt: timestamp("generated_at").defaultNow(),
+});
+
 // Relations
 export const repositoriesRelations = relations(repositories, ({ many }) => ({
   pullRequests: many(pullRequests),
   insights: many(insights),
+  repositoryReports: many(repositoryReports),
 }));
 
 export const pullRequestsRelations = relations(pullRequests, ({ one, many }) => ({
@@ -84,6 +96,13 @@ export const reportsRelations = relations(reports, ({ one }) => ({
 export const insightsRelations = relations(insights, ({ one }) => ({
   repository: one(repositories, {
     fields: [insights.repositoryId],
+    references: [repositories.id],
+  }),
+}));
+
+export const repositoryReportsRelations = relations(repositoryReports, ({ one }) => ({
+  repository: one(repositories, {
+    fields: [repositoryReports.repositoryId],
     references: [repositories.id],
   }),
 }));
@@ -115,6 +134,11 @@ export const insertReportTemplateSchema = createInsertSchema(reportTemplates).om
   updatedAt: true,
 });
 
+export const insertRepositoryReportSchema = createInsertSchema(repositoryReports).omit({
+  id: true,
+  generatedAt: true,
+});
+
 // Types
 export type Repository = typeof repositories.$inferSelect;
 export type InsertRepository = z.infer<typeof insertRepositorySchema>;
@@ -126,3 +150,33 @@ export type Insight = typeof insights.$inferSelect;
 export type InsertInsight = z.infer<typeof insertInsightSchema>;
 export type ReportTemplate = typeof reportTemplates.$inferSelect;
 export type InsertReportTemplate = z.infer<typeof insertReportTemplateSchema>;
+export type RepositoryReport = typeof repositoryReports.$inferSelect;
+export type InsertRepositoryReport = z.infer<typeof insertRepositoryReportSchema>;
+
+// Repository report input data types
+export interface RepositoryReportInput {
+  repository: {
+    name: string;
+    fullName: string;
+    totalPRs: number;
+    openPRs: number;
+    closedPRs: number;
+    mergedPRs: number;
+  };
+  pullRequests: Array<{
+    number: number;
+    title: string;
+    author: string;
+    status: string;
+    reviewStatus?: string;
+    createdAt: Date;
+    updatedAt: Date;
+    mergedAt?: Date | null;
+  }>;
+  summary: {
+    activeFeatures: number;
+    completedFeatures: number;
+    totalContributors: number;
+    lastActivity: Date;
+  };
+}
