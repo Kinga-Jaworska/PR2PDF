@@ -91,7 +91,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           await storage.createPullRequest(pr);
         }
         
-        return res.json(repository);
+        // Sanitize response to exclude GitHub token
+        const safeRepository = {
+          id: repository.id,
+          name: repository.name,
+          fullName: repository.fullName,
+          description: repository.description,
+          createdAt: repository.createdAt,
+          updatedAt: repository.updatedAt,
+        };
+        return res.json(safeRepository);
       }
       
       // Normal mode: Test GitHub token and repository access
@@ -114,7 +123,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't fail repository creation if sync fails
       }
 
-      res.json(repository);
+      // Sanitize response to exclude GitHub token
+      const safeRepository = {
+        id: repository.id,
+        name: repository.name,
+        fullName: repository.fullName,
+        description: repository.description,
+        createdAt: repository.createdAt,
+        updatedAt: repository.updatedAt,
+      };
+      res.json(safeRepository);
     } catch (error) {
       console.error("Error creating repository:", error);
       if (error instanceof z.ZodError) {
@@ -161,7 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Sync pull requests for a repository
   app.post("/api/repositories/:id/sync", async (req, res) => {
     try {
-      const repository = await storage.getRepository(req.params.id);
+      const repository = await storage.getRepositoryWithToken(req.params.id);
       if (!repository) {
         return res.status(404).json({ message: "Repository not found" });
       }
@@ -208,7 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Pull request not found" });
       }
 
-      const repository = await storage.getRepository(pullRequest.repositoryId);
+      const repository = await storage.getRepositoryWithToken(pullRequest.repositoryId);
       if (!repository) {
         return res.status(404).json({ message: "Repository not found" });
       }
@@ -321,7 +339,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { reportType = "mvp_summary", title, templateId } = req.body;
       
-      const repository = await storage.getRepository(req.params.id);
+      const repository = await storage.getRepositoryWithToken(req.params.id);
       if (!repository) {
         return res.status(404).json({ message: "Repository not found" });
       }
