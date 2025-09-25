@@ -4,6 +4,7 @@ import {
   reports, 
   insights,
   reportTemplates,
+  repositoryReports,
   type Repository, 
   type InsertRepository,
   type PullRequest,
@@ -13,7 +14,9 @@ import {
   type Insight,
   type InsertInsight,
   type ReportTemplate,
-  type InsertReportTemplate
+  type InsertReportTemplate,
+  type RepositoryReport,
+  type InsertRepositoryReport
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
@@ -56,6 +59,14 @@ export interface IStorage {
   updateReportTemplate(id: string, updates: Partial<InsertReportTemplate>): Promise<ReportTemplate | undefined>;
   deleteReportTemplate(id: string): Promise<boolean>;
   getDefaultTemplates(): Promise<ReportTemplate[]>;
+
+  // Repository Reports
+  getRepositoryReports(repositoryId: string): Promise<RepositoryReport[]>;
+  getAllRepositoryReports(): Promise<(RepositoryReport & { repository: Repository })[]>;
+  getRepositoryReport(id: string): Promise<RepositoryReport | undefined>;
+  createRepositoryReport(report: InsertRepositoryReport): Promise<RepositoryReport>;
+  updateRepositoryReport(id: string, updates: Partial<InsertRepositoryReport>): Promise<RepositoryReport | undefined>;
+  deleteRepositoryReport(id: string): Promise<boolean>;
 
   // Statistics
   getStatistics(): Promise<{
@@ -280,6 +291,54 @@ export class DatabaseStorage implements IStorage {
       .from(reportTemplates)
       .where(eq(reportTemplates.isDefault, true))
       .orderBy(reportTemplates.audienceType);
+  }
+
+  async getRepositoryReports(repositoryId: string): Promise<RepositoryReport[]> {
+    return await db
+      .select()
+      .from(repositoryReports)
+      .where(eq(repositoryReports.repositoryId, repositoryId))
+      .orderBy(desc(repositoryReports.generatedAt));
+  }
+
+  async getAllRepositoryReports(): Promise<(RepositoryReport & { repository: Repository })[]> {
+    const result = await db
+      .select({
+        repositoryReports: repositoryReports,
+        repositories: repositories
+      })
+      .from(repositoryReports)
+      .leftJoin(repositories, eq(repositoryReports.repositoryId, repositories.id))
+      .orderBy(desc(repositoryReports.generatedAt));
+
+    return result.map(row => ({
+      ...row.repositoryReports,
+      repository: row.repositories!
+    }));
+  }
+
+  async getRepositoryReport(id: string): Promise<RepositoryReport | undefined> {
+    const [report] = await db.select().from(repositoryReports).where(eq(repositoryReports.id, id));
+    return report || undefined;
+  }
+
+  async createRepositoryReport(report: InsertRepositoryReport): Promise<RepositoryReport> {
+    const [created] = await db.insert(repositoryReports).values(report).returning();
+    return created;
+  }
+
+  async updateRepositoryReport(id: string, updates: Partial<InsertRepositoryReport>): Promise<RepositoryReport | undefined> {
+    const [updated] = await db
+      .update(repositoryReports)
+      .set(updates)
+      .where(eq(repositoryReports.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteRepositoryReport(id: string): Promise<boolean> {
+    const result = await db.delete(repositoryReports).where(eq(repositoryReports.id, id));
+    return (result.rowCount ?? 0) > 0;
   }
 
   async getStatistics() {
